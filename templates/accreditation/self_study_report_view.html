@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load accreditation_tags %}
+
+{% block title %}تقرير دراسة التقييم الذاتي الشامل | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Top Action Toolbar (hidden on print) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 d-print-none">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'accreditation:application_detail' app.pk %}">طلب الاعتماد {{ app.application_number }}</a></li>
+                    <li class="breadcrumb-item active">تقرير دراسة التقييم الذاتي (SSR)</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-file-contract text-success me-2"></i>
+                تقرير دراسة التقييم الذاتي الشامل (Self-Study Report)
+            </h3>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'accounts:library_save_system_asset' %}?asset_type=ssr&app_id={{ app.pk }}" class="btn btn-warning fw-bold text-dark shadow-sm" title="حفظ وتثبيت تقرير التقييم الذاتي في مكتبتي الخاصة">
+                <i class="fa-solid fa-bookmark me-1"></i> حفظ في مكتبتي
+            </a>
+            {% if user.role in 'DG_ACCREDITATION,COUNCIL_SECRETARY_GENERAL,COUNCIL_SECRETARY,ADMIN' or user.is_superuser %}
+            <a href="{% url 'accreditation:desk_review_process' app.pk %}" class="btn btn-primary fw-bold shadow-sm">
+                <i class="fa-solid fa-clipboard-check me-1"></i> إجراء الفحص المكتبي على التقييم الذاتي
+            </a>
+            {% endif %}
+            {% if user.role in 'DG_EVALUATION,COUNCIL_SECRETARY_GENERAL,ADMIN' or user.is_superuser %}
+            <a href="{% url 'accreditation:secretariat_comparison_dashboard' app.pk %}" class="btn btn-success fw-bold shadow-sm">
+                <i class="fa-solid fa-code-compare me-1"></i> لوحة المقارنة التحليلية مع الشواهد
+            </a>
+            {% endif %}
+            <button onclick="window.print();" class="btn btn-outline-dark">
+                <i class="fa-solid fa-print me-1"></i> طباعة / تصدير PDF
+            </button>
+            {% if not user.role == 'BOARD_MEMBER' and not user.role == 'COUNCIL_SECRETARY' and not user.role == 'EXTERNAL_REVIEWER' %}
+            {% if not ssr.is_locked or user.is_superuser %}
+            {% if user.is_institution_rep or user.role == 'UNIVERSITY_PRESIDENT' or user.is_superuser or user.role == 'ADMIN' %}
+            <a href="{% url 'accreditation:self_study_indicators_edit' app.pk %}" class="btn btn-outline-primary fw-bold">
+                <i class="fa-solid fa-pen-to-square me-1"></i> تعديل وإرسال بيانات التقييم الذاتي
+            </a>
+            {% endif %}
+            {% endif %}
+            {% endif %}
+            <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-right me-1"></i> العودة لملف الطلب
+            </a>
+        </div>
+    </div>
+
+    <!-- Official Document Paper Container -->
+    <div class="card card-custom p-5 shadow-sm bg-white" style="border: 2px solid #e0e0e0;">
+        <!-- Official Header -->
+        <div class="text-center border-bottom pb-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-3 text-start">
+                    <div class="fw-bold fs-6">الجمهورية اليمنية</div>
+                    <div class="fw-bold small text-muted">وزارة التعليم العالي والبحث العلمي</div>
+                    <div class="fw-bold text-success small">مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي</div>
+                </div>
+                <div class="col-6 text-center">
+                    <i class="fa-solid fa-award text-success fs-1 mb-2"></i>
+                    <h4 class="fw-bold text-dark mb-1">تقرير دراسة التقييم الذاتي المؤسسي / البرامجي</h4>
+                    <span class="badge bg-secondary font-monospace fs-6">طلب رقم: {{ app.application_number }}</span>
+                </div>
+                <div class="col-3 text-end">
+                    <div class="fw-bold small text-muted">تاريخ الإصدار:</div>
+                    <div class="fw-bold font-monospace">{{ ssr.updated_at|date:"Y-m-d" }}</div>
+                    <div class="badge {% if ssr.is_locked %}bg-danger{% else %}bg-warning text-dark{% endif %} mt-1">
+                        {% if ssr.is_locked %}معتمد ومسلّم رسمياً{% else %}مسودة قيد الاستكمال{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: Institution & Scope Metadata -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3 bg-light p-2 rounded">
+                <i class="fa-solid fa-landmark text-primary me-2"></i>
+                1. بيانات المؤسسة ومجال الاعتماد
+            </h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <strong>اسم المؤسسة التعليمية: </strong> {{ app.institution.name }}
+                </div>
+                <div class="col-md-6">
+                    <strong>المسار الأكاديمي: </strong> {{ app.get_track_display }}
+                </div>
+                <div class="col-md-6">
+                    <strong>البرنامج الأكاديمي (إن وجد): </strong> {{ app.program.name|default:"اعتماد مؤسسي شامل" }}
+                </div>
+                <div class="col-md-6">
+                    <strong>إصدار المعايير المعتمد: </strong> {{ app.standard_version.title|default:"الإصدار الوطني المعتمد" }}
+                </div>
+                <div class="col-md-6">
+                    <strong>رقم قرار الإنشاء / الترخيص: </strong>
+                    {% if app.establishment_decree_number %}
+                        {{ app.establishment_decree_number }}
+                    {% elif app.institution.decree_number %}
+                        {{ app.institution.decree_number }}
+                    {% else %}
+                        غير مسجل
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <strong>ضابط الاتصال: </strong> {{ app.contact_person_name|default:app.applicant_user.get_full_name|default:app.applicant_user.username }} ({{ app.contact_phone|default:"-" }})
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Committees & Methodology -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3 bg-light p-2 rounded">
+                <i class="fa-solid fa-users-gear text-info me-2"></i>
+                2. فريق التقييم الذاتي والمنهجية
+            </h5>
+            <div class="mb-3">
+                <strong class="d-block mb-1 text-secondary">أعضاء ولجان التقييم الذاتي:</strong>
+                <p class="text-dark bg-light p-3 rounded mb-0">{{ ssr.internal_committee_names|default:"لم تُدرج بيانات اللجان بعد."|linebreaks }}</p>
+            </div>
+            <div class="mb-3">
+                <strong class="d-block mb-1 text-secondary">المنهجية وخطة إعداد التقييم:</strong>
+                <p class="text-dark bg-light p-3 rounded mb-0">{{ ssr.methodology|default:"لم تُدرج بيانات المنهجية بعد."|linebreaks }}</p>
+            </div>
+        </div>
+
+        <!-- Section 3: Executive Summary -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3 bg-light p-2 rounded">
+                <i class="fa-solid fa-chart-pie text-success me-2"></i>
+                3. الملخص التنفيذي ونقاط القوة والتحسين
+            </h5>
+            <div class="mb-3">
+                <strong class="d-block mb-1 text-secondary">الملخص التنفيذي:</strong>
+                <p class="text-dark bg-light p-3 rounded mb-0">{{ ssr.executive_summary|default:"لم يتم إدخال الملخص التنفيذي بعد."|linebreaks }}</p>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <strong class="d-block mb-1 text-success"><i class="fa-solid fa-check-circle me-1"></i> أبرز جوانب القوة:</strong>
+                    <p class="text-dark bg-light p-3 rounded mb-0">{{ ssr.strengths_overview|default:"-"|linebreaks }}</p>
+                </div>
+                <div class="col-md-6">
+                    <strong class="d-block mb-1 text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i> أبرز فرص التحسين والتحديات:</strong>
+                    <p class="text-dark bg-light p-3 rounded mb-0">{{ ssr.weaknesses_and_challenges|default:"-"|linebreaks }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Detailed Indicators & Evidences Matrix -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3 bg-light p-2 rounded">
+                <i class="fa-solid fa-table-list text-primary me-2"></i>
+                4. مصفوفة تقييم المعايير والمؤشرات والشواهد والخطط التصحيحية
+            </h5>
+
+            {% for category in categories %}
+            <div class="mb-4">
+                <div class="bg-primary bg-opacity-10 p-2 rounded mb-2 border-start border-primary border-4">
+                    <h6 class="fw-bold text-primary mb-0">
+                        {{ category.code }}: {{ category.title }}
+                        <span class="text-muted small fw-normal">(الوزن النسبي: {{ category.weight_percentage }}%)</span>
+                    </h6>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm align-middle">
+                        <thead class="table-light text-center small">
+                            <tr>
+                                <th style="width: 10%;">رمز المؤشر</th>
+                                <th style="width: 25%;">المؤشر وشرحه</th>
+                                <th style="width: 15%;">مستوى الاستيفاء</th>
+                                <th style="width: 25%;">مبررات المؤسسة والشواهد</th>
+                                <th style="width: 25%;">الخطة التصحيحية والمسؤول</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for indicator in category.indicators.all %}
+                            {% with resp=responses|get_item:indicator.id %}
+                            <tr>
+                                <td class="text-center font-monospace fw-bold">
+                                    {{ indicator.code }}
+                                    {% if indicator.is_core_standard %}
+                                    <div class="badge bg-danger small d-block mt-1">أساسي</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-bold small">{{ indicator.title }}</div>
+                                    {% if indicator.explanation %}
+                                    <div class="text-muted extra-small" style="font-size: 0.8rem;">{{ indicator.explanation }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if resp %}
+                                    <span class="badge {% if resp.compliance_level == 'FULL' %}bg-success{% elif resp.compliance_level == 'SUBSTANTIAL' %}bg-info text-dark{% elif resp.compliance_level == 'PARTIAL' %}bg-warning text-dark{% elif resp.compliance_level == 'NON_COMPLIANT' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ resp.get_compliance_level_display }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted border">غير مقيّم</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if resp.justification %}
+                                    <div class="small mb-1"><strong>المبررات:</strong> {{ resp.justification }}</div>
+                                    {% endif %}
+                                    {% if resp.strengths %}
+                                    <div class="small text-success mb-1"><strong>القوة:</strong> {{ resp.strengths }}</div>
+                                    {% endif %}
+                                    {% if resp.gaps_and_weaknesses %}
+                                    <div class="small text-danger mb-1"><strong>الفجوات:</strong> {{ resp.gaps_and_weaknesses }}</div>
+                                    {% endif %}
+
+                                    <!-- Attached Evidences for this Indicator -->
+                                    {% with evs=evidences_by_indicator|get_item:indicator.id %}
+                                    {% if evs %}
+                                    <div class="mt-2 border-top pt-1">
+                                        <strong class="extra-small text-primary d-block">الشواهد والوثائق المرفوعة:</strong>
+                                        <ul class="list-unstyled mb-0 extra-small" style="font-size: 0.8rem;">
+                                            {% for ev in evs %}
+                                            <li>
+                                                <i class="fa-solid fa-paperclip text-muted me-1"></i>
+                                                <a href="{{ ev.file.url }}" target="_blank" class="text-decoration-none">{{ ev.title }}</a>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% if resp.corrective_actions %}
+                                    <div class="small mb-1"><strong>الإجراء:</strong> {{ resp.corrective_actions }}</div>
+                                    {% endif %}
+                                    {% if resp.responsible_party %}
+                                    <div class="extra-small text-muted"><strong>المسؤول:</strong> {{ resp.responsible_party }}</div>
+                                    {% endif %}
+                                    {% if resp.target_completion_date %}
+                                    <div class="extra-small text-muted"><strong>الموعد المستهدف:</strong> {{ resp.target_completion_date|date:"Y-m-d" }}</div>
+                                    {% endif %}
+                                    {% if not resp.corrective_actions and not resp.responsible_party %}
+                                    <span class="text-muted extra-small">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Official Signatures Footer -->
+        <div class="row pt-5 mt-4 border-top">
+            <div class="col-4 text-center">
+                <div class="fw-bold mb-5">رئيس لجنة التقييم الذاتي بالمؤسسة</div>
+                <div class="border-top pt-2 text-muted small">التوقيع والختم</div>
+            </div>
+            <div class="col-4 text-center">
+                <div class="fw-bold mb-5">عميد مركز ضمان الجودة</div>
+                <div class="border-top pt-2 text-muted small">التوقيع والختم</div>
+            </div>
+            <div class="col-4 text-center">
+                <div class="fw-bold mb-5">رئيس الجامعة / المؤسسة</div>
+                <div class="border-top pt-2 text-muted small">التوقيع والختم الرسمي</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

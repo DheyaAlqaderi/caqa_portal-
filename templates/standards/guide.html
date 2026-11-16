@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}الدليل الوطني لمعايير الاعتماد الأكاديمي وضمان الجودة{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1"><i class="fa-solid fa-book-bookmark text-success me-2"></i> الدليل الوطني لمعايير الاعتماد الأكاديمي وضمان الجودة</h3>
+        <p class="text-muted mb-0">المعايير المعتمدة من مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي في الجمهورية اليمنية</p>
+    </div>
+    <div>
+        <div class="btn-group shadow-sm">
+            <a href="?track=INSTITUTIONAL" class="btn {% if selected_track == 'INSTITUTIONAL' %}btn-success{% else %}btn-outline-success{% endif %} fw-bold px-3">
+                <i class="fa-solid fa-university me-1"></i> معايير الاعتماد المؤسسي
+            </a>
+            <a href="?track=PROGRAMMATIC" class="btn {% if selected_track == 'PROGRAMMATIC' %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold px-3">
+                <i class="fa-solid fa-graduation-cap me-1"></i> معايير الاعتماد البرامجي
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom p-3 border-start border-4 border-success">
+            <small class="text-muted fw-bold">إجمالي المعايير الرئيسية</small>
+            <div class="fs-2 fw-black text-dark">{{ total_categories }} معايير رئيسية</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom p-3 border-start border-4 border-primary">
+            <small class="text-muted fw-bold">المؤشرات الفرعية المنبثقة</small>
+            <div class="fs-2 fw-black text-primary">{{ total_indicators }} مؤشراً تشغيلياً</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom p-3 border-start border-4 border-danger">
+            <small class="text-muted fw-bold">المؤشرات الجوهرية الحاسمة (Core)</small>
+            <div class="fs-2 fw-black text-danger">{{ core_indicators }} مؤشراً حاسماً</div>
+        </div>
+    </div>
+</div>
+
+<!-- Standards List Accordion -->
+<div class="accordion" id="standardsAccordion">
+    {% for cat in categories %}
+    <div class="accordion-item card-custom mb-3 border overflow-hidden">
+        <h2 class="accordion-header" id="heading{{ cat.id }}">
+            <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} fw-bold fs-5 bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ cat.id }}">
+                <span class="badge bg-dark font-monospace me-2">{{ cat.code }}</span>
+                <span class="text-dark me-2">{{ cat.title }}</span>
+                <span class="badge bg-secondary ms-auto me-3 font-monospace">الوزن: {{ cat.weight_percentage }}%</span>
+                <span class="badge bg-light text-muted border me-2">{{ cat.indicators.count }} مؤشر</span>
+            </button>
+        </h2>
+        <div id="collapse{{ cat.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#standardsAccordion">
+            <div class="accordion-body p-4">
+                {% if cat.description %}
+                <p class="text-muted mb-3">{{ cat.description }}</p>
+                {% endif %}
+
+                <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-list-check me-1"></i> المؤشرات الفرعية والشواهد المطلوبة:</h6>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 120px;">رمز المؤشر</th>
+                                <th>نص المؤشر الفرعي وشرح المتطلب</th>
+                                <th>الشواهد والأدلة الإرشادية المطلوبة</th>
+                                <th style="width: 140px;" class="text-center">الأهمية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ind in cat.indicators.all %}
+                            <tr>
+                                <td class="font-monospace fw-bold text-primary">{{ ind.code }}</td>
+                                <td>
+                                    <div class="fw-bold">{{ ind.title }}</div>
+                                    {% if ind.explanation %}
+                                    <small class="text-muted">{{ ind.explanation }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-secondary"><i class="fa-solid fa-paperclip me-1"></i> {{ ind.suggested_evidences|default:'الوثائق واللوائح والتقارير الثبوتية' }}</small>
+                                </td>
+                                <td class="text-center">
+                                    {% if ind.is_core_standard %}
+                                    <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> معيار حاسم</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted border">معياري عام</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">لا توجد مؤشرات مسجلة لهذا المعيار حالياً.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

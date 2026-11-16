@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}محضر اجتماع مجلس الإدارة الرسمي - {{ meeting.meeting_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
+        <a href="{% url 'decisions:meeting_detail' meeting.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة للجلسة
+        </a>
+        <button onclick="window.print();" class="btn btn-primary btn-sm fw-bold">
+            <i class="fa-solid fa-print me-1"></i> طباعة / تصدير المحضر الرسمي (PDF)
+        </button>
+    </div>
+
+    <div class="card p-5 shadow-sm border">
+        <!-- Official Header -->
+        <div class="text-center border-bottom pb-3 mb-4">
+            <h5 class="fw-bold mb-1">الجمهورية اليمنية — مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي</h5>
+            <h4 class="fw-bold text-primary mb-2">محضر اجتماع مجلس الإدارة الرسمي: {{ meeting.meeting_number }}</h4>
+            <div class="small text-muted">
+                <span>رقم المحضر: <strong>{{ minutes.minutes_number|default:"مسودة" }}</strong></span> |
+                <span>الإصدار: <strong>v{{ minutes.version_number|default:1 }}</strong></span> |
+                <span>التاريخ: <strong>{{ meeting.meeting_date }}</strong></span> |
+                <span>المكان: <strong>{{ meeting.location }}</strong></span> |
+                <span>الحالة: <strong>{{ minutes.get_status_display|default:meeting.get_status_display }}</strong></span>
+            </div>
+        </div>
+
+        <!-- 1. Opening & Quorum -->
+        <h6 class="fw-bold text-dark border-bottom pb-1">أولاً: افتتاح الجلسة والتحقق من النصاب القانوني (المادة 6)</h6>
+        <p class="small text-dark" style="white-space: pre-line;">
+            {{ minutes.opening_statement|default:meeting.meeting_agenda }}
+        </p>
+
+        <!-- 2. Attendance Table -->
+        <h6 class="fw-bold text-dark border-bottom pb-1 mt-3">ثانياً: كشف الحضور والغياب والمعتذرين والخبراء المدعوين</h6>
+        <table class="table table-sm table-bordered small">
+            <thead class="table-light">
+                <tr>
+                    <th>الاسم</th>
+                    <th>الصفة</th>
+                    <th>آلية المشاركة</th>
+                    <th>الحالة</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for att in attendances %}
+                <tr>
+                    <td>{{ att.member.get_full_name|default:att.member.username }}</td>
+                    <td>{{ att.get_attendee_category_display }}</td>
+                    <td>{{ att.get_participation_mode_display }}</td>
+                    <td>{{ att.get_status_display }}</td>
+                    <td>{{ att.remarks|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- 3. Discussions & Reservations -->
+        <h6 class="fw-bold text-dark border-bottom pb-1 mt-3">ثالثاً: بنود جدول الأعمال وملخص المداولات والتحفظات</h6>
+        <p class="small text-dark" style="white-space: pre-line;">{{ minutes.discussions_record }}</p>
+
+        <!-- 4. Voting Results & Resolutions -->
+        <h6 class="fw-bold text-dark border-bottom pb-1 mt-3">رابعاً: نتائج التصويت والقرارات والتوصيات والتكليفات الصادرة</h6>
+        <p class="small text-dark" style="white-space: pre-line;">{{ minutes.decisions_record }}</p>
+
+        <!-- 5. Closing & Official Signatures -->
+        <h6 class="fw-bold text-dark border-bottom pb-1 mt-3">خامساً: اختتام المحضر والتوقيعات الرسمية</h6>
+        <p class="small text-dark">{{ minutes.closing_statement }}</p>
+
+        <div class="row text-center mt-5 pt-3 border-top">
+            <div class="col-4">
+                <div class="fw-bold">أمين سر الجلسة</div>
+                <div class="small text-muted mt-2">{{ meeting.secretary_name|default:minutes.prepared_by.get_full_name }}</div>
+            </div>
+            <div class="col-4">
+                <div class="fw-bold">الأمين العام للمجلس</div>
+                <div class="small text-muted mt-2">الأمانة العامة</div>
+            </div>
+            <div class="col-4">
+                <div class="fw-bold">رئيس مجلس الإدارة (رئيس الجلسة)</div>
+                <div class="small text-muted mt-2">{{ meeting.chairperson_name }}</div>
+                {% if minutes and minutes.status == 'APPROVED' %}
+                <span class="badge bg-success mt-1">معتمد وموقع إلكترونياً ({{ minutes.approved_at|date:"Y-m-d H:i" }})</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

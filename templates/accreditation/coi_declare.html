@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}إقرار النزاهة وعدم تعارض المصالح | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-warning text-dark mb-1">حماية النزاهة والحياد الأكاديمي</span>
+                    <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-hand-holding-heart text-warning me-2"></i> إقرار الإفصاح عن تعارض المصالح للمحكّم الخارجي</h4>
+                    <small class="text-muted">الطلب رقم: {{ app.application_number }} - {{ app.institution.name }} ({{ app.get_track_display }})</small>
+                </div>
+                <div>
+                    <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة
+                    </a>
+                </div>
+            </div>
+
+            <div class="alert alert-info border small mb-4">
+                <i class="fa-solid fa-scale-balanced me-1"></i>
+                وفقاً للائحة مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي بالجمهورية اليمنية، يلتزم كل خبير أو محكّم بالإفصاح الكامل عن أي علاقة أو مصلحة مالية أو أكاديمية أو قرابة قد تؤثر على حيدته واستقلاليته قبل الاطلاع على ملفات التقييم.
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="card border p-3 mb-4 bg-light">
+                    <h6 class="fw-bold mb-3 text-dark">يرجى الإجابة بدقة على بنود التحقق التالية:</h6>
+
+                    <div class="form-check p-3 bg-white border rounded mb-3">
+                        <input class="form-check-input ms-2" type="checkbox" name="has_taught" id="has_taught" {% if coi.has_taught_in_institution %}checked{% endif %}>
+                        <label class="form-check-label fw-bold text-dark" for="has_taught">
+                            1. هل سبق لك التدريس، التعيين، أو تولي منصب قيادي في ({{ app.institution.name }}) أو برنامج ({{ app.program.name|default:'الكلية' }}) خلال آخر 5 سنوات؟
+                        </label>
+                    </div>
+
+                    <div class="form-check p-3 bg-white border rounded mb-3">
+                        <input class="form-check-input ms-2" type="checkbox" name="has_relatives" id="has_relatives" {% if coi.has_relatives_or_graduates %}checked{% endif %}>
+                        <label class="form-check-label fw-bold text-dark" for="has_relatives">
+                            2. هل لديك أقارب حتى الدرجة الرابعة (أبناء، إخوة، أصهار...) يعملون أو يدرسون حالياً في هذا البرنامج؟ أو طلاب دراسات عليا أشرفت عليهم؟
+                        </label>
+                    </div>
+
+                    <div class="form-check p-3 bg-white border rounded mb-3">
+                        <input class="form-check-input ms-2" type="checkbox" name="has_financial" id="has_financial" {% if coi.has_financial_or_consulting %}checked{% endif %}>
+                        <label class="form-check-label fw-bold text-dark" for="has_financial">
+                            3. هل لديك أي استشارات مدفوعة، مصالح تجارية، أو أبحاث ممولة مشتركة مع المؤسسة المتقدمة؟
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">أي علاقات أو أسباب أخرى ترغب في الإفصاح عنها بشفافية:</label>
+                        <textarea name="other_conflict_details" class="form-control" rows="2" placeholder="اكتب أي إيضاحات إضافية هنا...">{{ coi.other_conflict_details }}</textarea>
+                    </div>
+
+                    <div class="form-check p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                        <input class="form-check-input ms-2" type="checkbox" name="is_conflict_acknowledged" id="is_conflict_acknowledged" {% if coi.is_conflict_acknowledged %}checked{% endif %}>
+                        <label class="form-check-label fw-bold text-danger" for="is_conflict_acknowledged">
+                            أقر بوجود تعارض مصالح فعلي يستوجب اعتذاري وتنحيتي عن تحكيم هذا الملف حفاظاً على الشفافية.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="p-3 border rounded bg-white mb-4">
+                    <p class="small text-muted mb-0">
+                        <i class="fa-solid fa-fingerprint text-primary me-1"></i>
+                        <strong>صيغة التعهد:</strong> أقر أنا المحكّم ({{ request.user.get_full_name|default:request.user.username }}) بأن جميع الإفصاحات الواردة أعلاه صحيحة وكاملة، وأتعهد بأداء مهمة التحكيم وفق معايير النزاهة والموضوعية وبما يمليه ضميري الأكاديمي والمهني.
+                    </p>
+                </div>
+
+                <div class="d-flex justify-content-between pt-3 border-top">
+                    <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-warning fw-bold px-4">
+                        <i class="fa-solid fa-pen-nib me-1"></i> توقيع وتأكيد إقرار النزاهة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

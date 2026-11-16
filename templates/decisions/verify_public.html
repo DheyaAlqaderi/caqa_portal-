@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}التحقق الرقمي من صحة شهادة الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 border-0 shadow-lg text-center">
+            
+            <div class="mb-3">
+                {% include 'includes/yemen_emblem_svg.html' with width='64' height='52' %}
+            </div>
+            
+            {% if cert.status == 'ACTIVE' and not cert.is_revoked %}
+            <div class="text-success mb-3">
+                <i class="fa-solid fa-circle-check display-3"></i>
+            </div>
+            <h3 class="fw-bold text-success mb-1">وثيقة اعتماد أكاديمي رسمية وموثقة</h3>
+            <p class="text-muted">هذه الشهادة مسجلة في السجل الوطني لمجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي في الجمهورية اليمنية وسارية المفعول.</p>
+            {% elif cert.status == 'SUSPENDED' %}
+            <div class="text-warning mb-3">
+                <i class="fa-solid fa-triangle-exclamation display-3"></i>
+            </div>
+            <h3 class="fw-bold text-warning mb-1">وثيقة اعتماد معلقة مؤقتاً</h3>
+            <p class="text-danger fw-bold">تنبيه: تم تعليق سريان هذه الوثيقة مؤقتاً بقرار رسمي من مجلس الإدارة لحين استيفاء اشتراطات المتابعة.</p>
+            {% elif cert.status == 'EXPIRED' %}
+            <div class="text-secondary mb-3">
+                <i class="fa-solid fa-clock display-3"></i>
+            </div>
+            <h3 class="fw-bold text-secondary mb-1">وثيقة اعتماد منتهية الصلاحية</h3>
+            <p class="text-muted">انتهت مدة سريان وثيقة الاعتماد المحددة، وبانتظار استكمال إجراءات تجديد الاعتماد الأكاديمي.</p>
+            {% else %}
+            <div class="text-danger mb-3">
+                <i class="fa-solid fa-circle-xmark display-3"></i>
+            </div>
+            <h3 class="fw-bold text-danger mb-1">وثيقة اعتماد ملغاة أو مسحوبة</h3>
+            <p class="text-danger fw-bold">تنبيه: تم إلغاء وسحب وثيقة الاعتماد هذه رسمياً من قبل مجلس الإدارة وشطبها من السجل الوطني.</p>
+            {% if cert.revocation_decree %}
+            <div class="alert alert-danger py-2 small">
+                <strong>القرار المرجعي للسحب:</strong> {{ cert.revocation_decree }} - {{ cert.revocation_reason }}
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <div class="table-responsive text-start mt-4">
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th class="bg-light" style="width: 250px;">رقم القيد الوطني بالسجل:</th>
+                            <td class="fw-bold font-monospace text-primary fs-5">{{ cert.national_registry_code }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">المؤسسة التعليمية المعتمدة:</th>
+                            <td class="fw-bold">{{ cert.decision.application.institution.name }}</td>
+                        </tr>
+                        {% if cert.decision.application.program %}
+                        <tr>
+                            <th class="bg-light">البرنامج الأكاديمي المعتمد:</th>
+                            <td class="fw-bold text-primary">{{ cert.decision.application.program.name }} ({{ cert.decision.application.program.get_degree_level_display }})</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <th class="bg-light">نوع الاعتماد:</th>
+                            <td class="fw-bold text-success">اعتماد مؤسسي كامل للجامعة</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th class="bg-light">نوع قرار الاعتماد:</th>
+                            <td><span class="badge bg-success fs-6">{{ cert.decision.get_decision_type_display }}</span></td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">رقم وتاريخ القرار:</th>
+                            <td>{{ cert.decision.decree_number }} بتاريخ {{ cert.decision.decision_date }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">فترة سريان الاعتماد:</th>
+                            <td>من <strong>{{ cert.decision.start_date }}</strong> حتى <strong>{{ cert.decision.expiry_date }}</strong> ({{ cert.decision.validity_years }} سنوات)</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">المعرف الرقمي الفريد (UUID):</th>
+                            <td class="font-monospace small text-muted">{{ cert.certificate_uuid }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3 d-flex justify-content-center gap-2">
+                <a href="{% url 'decisions:verify_certificate_pdf_public' cert.certificate_uuid %}" target="_blank" class="btn btn-success fw-bold">
+                    <i class="fa-solid fa-file-pdf me-1"></i> تحميل الشهادة الرسمية (PDF)
+                </a>
+                <a href="{% url 'decisions:certificate_detail' cert.pk %}" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-file-invoice me-1"></i> عرض وثيقة الشهادة الكاملة
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}الملف الشخصي | {{ user.get_full_name|default:user.username }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card card-custom p-4">
+            <div class="d-flex align-items-center mb-4">
+                <div class="me-3 fs-1 text-primary">
+                    <i class="fa-solid fa-circle-user"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-0">{{ user.academic_title }} {{ user.get_full_name|default:user.username }}</h4>
+                    <span class="badge bg-success fs-6 mt-1">{{ user.get_role_display }}</span>
+                    {% if user.is_certified_evaluator %}
+                    <span class="badge bg-warning text-dark fs-6 mt-1"><i class="fa-solid fa-certificate me-1"></i> محكّم وطني معتمد</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th class="bg-light" style="width: 250px;">اسم المستخدم</th>
+                            <td>{{ user.username }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">البريد الإلكتروني</th>
+                            <td>{{ user.email|default:'-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">الهاتف / الواتساب</th>
+                            <td>{{ user.phone|default:'-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">الرقم الوطني</th>
+                            <td>{{ user.national_id|default:'-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">التخصص الدقيق</th>
+                            <td>{{ user.specialization|default:'-' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">المؤسسة التابع لها</th>
+                            <td>{{ user.institution.name|default:'مجلس الاعتماد الأكاديمي' }}</td>
+                        </tr>
+                        {% if user.is_certified_evaluator %}
+                        <tr>
+                            <th class="bg-light">رقم شهادة المحكم الوطني</th>
+                            <td><span class="fw-bold text-success">{{ user.evaluator_certificate_number }}</span></td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3 text-start">
+                <a href="{% url 'core_dashboard' %}" class="btn btn-secondary">
+                    <i class="fa-solid fa-arrow-right me-1"></i> العودة للرئيسية
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

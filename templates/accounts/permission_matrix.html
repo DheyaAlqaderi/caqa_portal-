@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load account_tags %}
+
+{% block title %}مصفوفة الصلاحيات والحوكمة المؤسسية | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="row my-4">
+    <div class="col-12">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-primary mb-1">محرك الحوكمة والصلاحيات الديناميكية</span>
+                    <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-shield-halved text-primary me-2"></i> مصفوفة الصلاحيات للأدوار الإدارية</h3>
+                    <small class="text-muted">إدارة الصلاحيات الممنوحة للأدوار، ضبط الحوكمة المؤسسية، وحماية الصلاحيات السيادية</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'accounts:user_overrides' %}" class="btn btn-outline-info">
+                        <i class="fa-solid fa-user-lock me-1"></i> استثناءات المستخدمين ({{ active_overrides_count }})
+                    </a>
+                    <a href="{% url 'accounts:permission_audit' %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-clock-rotate-left me-1"></i> سجل تدقيق الصلاحيات ({{ audit_count }})
+                    </a>
+                </div>
+            </div>
+
+            <!-- Informational Banner -->
+            <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                <i class="fa-solid fa-circle-info fa-2x me-3"></i>
+                <div>
+                    <strong>قواعد الحوكمة السيادية:</strong>
+                    الصلاحيات المميزة بشارة <span class="badge bg-danger"><i class="fa-solid fa-lock me-1"></i> مقيدة بالحوكمة</span> هي صلاحيات سيادية تخضع لقيود دستورية وإدارية صلبة لا يمكن تعديلها أو منحها لغير الأدوار المصرح بها رسمياً.
+                </div>
+            </div>
+
+            <!-- Modules & Matrix Table -->
+            {% for module_name, perms in modules.items %}
+            <div class="card mb-4 border shadow-sm">
+                <div class="card-header bg-light py-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="fa-solid fa-layer-group me-2"></i> {{ module_name }}</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 30%;">الصلاحية والوصف</th>
+                                {% for role_val, role_label in roles %}
+                                <th class="text-center" style="width: 14%;">
+                                    <span class="badge bg-dark bg-opacity-75 p-2 d-block text-truncate" title="{{ role_label }}">{{ role_label }}</span>
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in perms %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ item.permission.name }}</div>
+                                    <small class="text-muted d-block">{{ item.permission.description }}</small>
+                                    <code class="text-secondary small">{{ item.permission.codename }}</code>
+                                    {% if item.permission.is_governance_locked %}
+                                    <span class="badge bg-danger ms-1 small" title="صلاحية سيادية مقيدة بالحوكمة"><i class="fa-solid fa-lock"></i> مقيدة سيادياً</span>
+                                    {% endif %}
+                                </td>
+                                {% for role_val, role_label in roles %}
+                                {% with assign=item.role_status|dict_get:role_val %}
+                                <td class="text-center">
+                                    {% if item.permission.is_governance_locked and role_val == 'ADMIN' and item.permission.codename in 'can_record_individual_vote can_finalize_collective_decision can_decide_grievance' %}
+                                        <span class="badge bg-secondary p-2" title="محظورة سيادياً على مدير النظام"><i class="fa-solid fa-ban me-1"></i> حظر سيادي</span>
+                                    {% elif item.permission.is_governance_locked and role_val == 'COUNCIL_SECRETARY' and item.permission.codename in 'can_record_individual_vote can_finalize_collective_decision can_decide_grievance' %}
+                                        <span class="badge bg-secondary p-2" title="محظورة سيادياً على الأمانة"><i class="fa-solid fa-ban me-1"></i> حظر سيادي</span>
+                                    {% else %}
+                                        {% if assign and assign.is_granted %}
+                                        <form method="post" action="{% url 'accounts:toggle_role_permission' %}" class="d-inline" onsubmit="return confirmAction(this, 'حجب', '{{ item.permission.name }}', '{{ role_label }}');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="permission_id" value="{{ item.permission.id }}">
+                                            <input type="hidden" name="role" value="{{ role_val }}">
+                                            <input type="hidden" name="action" value="deny">
+                                            <input type="hidden" name="reason" value="">
+                                            <button type="submit" class="btn btn-sm btn-success px-3" title="ممنوحة - انقر للحجب">
+                                                <i class="fa-solid fa-check me-1"></i> ممنوحة
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <form method="post" action="{% url 'accounts:toggle_role_permission' %}" class="d-inline" onsubmit="return confirmAction(this, 'منح', '{{ item.permission.name }}', '{{ role_label }}');">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="permission_id" value="{{ item.permission.id }}">
+                                            <input type="hidden" name="role" value="{{ role_val }}">
+                                            <input type="hidden" name="action" value="grant">
+                                            <input type="hidden" name="reason" value="">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger px-3" title="محجوبة - انقر للمنح">
+                                                <i class="fa-solid fa-xmark me-1"></i> محجوبة
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmAction(form, actionText, permName, roleLabel) {
+    const reason = prompt(`هل أنت متأكد من رغبتك في ${actionText} الصلاحية (${permName}) للدور (${roleLabel})؟\n\nيرجى كتابة السبب الإداري والمبرر:`);
+    if (!reason || !reason.trim()) {
+        if (reason !== null) {
+            alert('السبب الإداري إلزامي لإتمام العملية وتوثيقها في سجل التدقيق.');
+        }
+        return false;
+    }
+    form.querySelector('input[name="reason"]').value = reason.trim();
+    return true;
+}
+</script>
+{% endblock %}

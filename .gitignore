@@ -1,0 +1,25 @@
+# Python & Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.log
+local_settings.py
+.env
+.env.*
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Backups (keep main caqa_db.sqlite3 for out-of-the-box demo data)
+*.bak_*
+*_backup_*.sqlite3
+backups/
+
+# OS & IDEs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

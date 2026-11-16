@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل المعاملة السيادية {{ transaction.reference_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'decisions:sovereign_transactions_list' %}" class="text-decoration-none">سجل المعاملات السيادية</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ transaction.reference_number }}</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-stamp text-primary me-2"></i>
+                معاملة رقم: <span class="text-primary">{{ transaction.reference_number }}</span>
+            </h3>
+            <p class="text-muted mb-0">
+                <span class="badge 
+                    {% if transaction.status == 'RATIFIED' or transaction.status == 'EFFECTIVE' or transaction.status == 'APPROVED' %}bg-success
+                    {% elif transaction.status == 'UNDER_REVIEW' or transaction.status == 'SUBMITTED' %}bg-warning text-dark
+                    {% elif transaction.status == 'REJECTED' %}bg-danger
+                    {% elif transaction.status == 'RETURNED_FOR_COMPLETION' %}bg-info text-dark
+                    {% else %}bg-secondary{% endif %} me-2">
+                    {{ transaction.get_status_display }}
+                </span>
+                <span class="badge bg-secondary">{{ transaction.get_transaction_type_display }}</span>
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'decisions:sovereign_transactions_list' %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-right me-1"></i> العودة للسجل
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main details -->
+        <div class="col-md-7">
+            <div class="card card-custom p-4 shadow-sm border-0 mb-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-circle-info text-info me-2"></i> بيانات وموضوع المعاملة</h5>
+                <h4 class="fw-bold text-primary mb-3">{{ transaction.subject }}</h4>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">الجهة الراسلة / المرفوع منها:</small>
+                        <span class="fw-bold">{{ transaction.sending_authority }}</span>
+                        {% if transaction.sender %}
+                        <div class="small text-muted">{{ transaction.sender.get_full_name }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">الجهة المستقبلة / المرفوع إليها:</small>
+                        <span class="fw-bold">{{ transaction.receiving_authority }}</span>
+                        {% if transaction.recipient %}
+                        <div class="small text-muted">{{ transaction.recipient.get_full_name }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">تاريخ الإنشاء والقيد:</small>
+                        <span class="fw-bold">{{ transaction.submission_date|date:"Y-m-d H:i:s" }}</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">آخر تحديث للمسار:</small>
+                        <span class="fw-bold">{{ transaction.updated_at|date:"Y-m-d H:i:s" }}</span>
+                    </div>
+                </div>
+
+                {% if transaction.description %}
+                <div class="p-3 bg-light rounded text-secondary mb-3" style="white-space: pre-line;">
+                    {{ transaction.description }}
+                </div>
+                {% endif %}
+
+                {% if transaction.official_document %}
+                <div class="p-3 border rounded bg-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fa-solid fa-file-pdf text-danger fs-3 me-2"></i>
+                        <span class="fw-bold text-dark">الوثيقة والمذكرة الرسمية المرفقة</span>
+                    </div>
+                    <a href="{{ transaction.official_document.url }}" target="_blank" class="btn btn-outline-primary btn-sm fw-bold">
+                        <i class="fa-solid fa-download me-1"></i> تحميل / عرض الوثيقة
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- History / Movements Timeline -->
+        <div class="col-md-5">
+            <div class="card card-custom p-4 shadow-sm border-0">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-timeline text-primary me-2"></i> المسار الزمني والإجرائي للمعاملة</h5>
+                {% if movements %}
+                <ul class="timeline list-unstyled position-relative border-start border-2 border-primary ps-4 ms-2">
+                    {% for m in movements %}
+                    <li class="mb-4 position-relative">
+                        <div class="position-absolute" style="top: 0; left: -25px; width: 14px; height: 14px; background-color: #0d6efd; border-radius: 50%; border: 2px solid #fff;"></div>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge bg-light text-dark border me-1">{{ m.from_status|default:"البداية" }}</span>
+                                <i class="fa-solid fa-arrow-left text-muted mx-1"></i>
+                                <span class="badge bg-primary text-white">{{ m.to_status }}</span>
+                            </div>
+                            <small class="text-muted">{{ m.timestamp|date:"Y-m-d H:i" }}</small>
+                        </div>
+                        {% if m.actor %}
+                        <div class="small fw-bold text-secondary mt-1">
+                            <i class="fa-solid fa-user me-1"></i> تم بواسطة: {{ m.actor.get_full_name }}
+                        </div>
+                        {% endif %}
+                        {% if m.notes %}
+                        <p class="small text-muted mt-1 mb-0 p-2 bg-light rounded">
+                            {{ m.notes }}
+                        </p>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small">لا توجد حركات مسجلة إضافية على هذه المعاملة.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

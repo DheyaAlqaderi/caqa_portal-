@@ -1,0 +1,48 @@
+<!-- Unified 13-Module System Administrator Navigation Bar -->
+{% if user.role == 'ADMIN' or user.role == 'IT_DIRECTOR' or user.is_superuser %}
+<div class="card card-custom p-2 mb-4 border-start border-4 border-dark bg-white shadow-sm">
+    <div class="d-flex flex-wrap align-items-center gap-1">
+        <span class="badge bg-dark px-3 py-2 me-1">
+            <i class="fa-solid fa-Microchip text-warning me-1"></i> منظومة إدارة النظام التقنية
+        </span>
+        <a href="{% url 'accounts:sysadmin_dashboard' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_dashboard' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-gauge-high me-1"></i> 1. لوحة مدير النظام
+        </a>
+        <a href="{% url 'accounts:admin_users_dashboard' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'admin_users_dashboard' or request.resolver_match.url_name == 'admin_user_activity' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-users-gear me-1"></i> 2. إدارة المستخدمين
+        </a>
+        <a href="{% url 'accounts:permission_matrix' %}" class="btn btn-sm {% if 'permission' in request.resolver_match.url_name or request.resolver_match.url_name == 'user_overrides' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-shield-halved me-1"></i> 3. الأدوار والصلاحيات
+        </a>
+        <a href="{% url 'accounts:sysadmin_reference_data' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_reference_data' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-building-columns me-1"></i> 4. المؤسسات والبيانات المرجعية
+        </a>
+        <a href="{% url 'accounts:sysadmin_settings' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_settings' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-sliders me-1"></i> 5. إعدادات النظام العامة
+        </a>
+        <a href="{% url 'accounts:sysadmin_notifications_monitor' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_notifications_monitor' or request.resolver_match.url_name == 'sms_logs' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-bell me-1"></i> 6. الإشعارات والبريد
+        </a>
+        <a href="{% url 'accounts:sysadmin_files_storage' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_files_storage' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-hard-drive me-1"></i> 7. الملفات والتخزين
+        </a>
+        <a href="{% url 'accounts:sysadmin_workflow_monitor' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_workflow_monitor' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-diagram-project me-1"></i> 8. مراقبة مسارات العمل
+        </a>
+        <a href="{% url 'accounts:sysadmin_security_center' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_security_center' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-user-shield me-1"></i> 9. الأمان والحوكمة وسجل التدقيق
+        </a>
+        <a href="{% url 'accounts:permission_audit' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'permission_audit' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-clipboard-list me-1"></i> 10. تدقيق الصلاحيات
+        </a>
+        {% if user.role == 'ADMIN' or user.is_superuser %}
+        <a href="{% url 'accounts:sysadmin_backups' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'sysadmin_backups' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-database me-1"></i> 11. النسخ الاحتياطي والاستعادة
+        </a>
+        {% endif %}
+        <a href="{% url 'accounts:admin_diagnostics' %}?diagnostic_reason=فحص_صحة_النظام_والتشخيص_التقني" class="btn btn-sm {% if request.resolver_match.url_name == 'admin_diagnostics' %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+            <i class="fa-solid fa-heart-pulse me-1"></i> 12. صحة النظام والتشخيص
+        </a>
+    </div>
+</div>
+{% endif %}

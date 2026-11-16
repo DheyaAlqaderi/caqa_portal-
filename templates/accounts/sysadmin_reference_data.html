@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة المؤسسات والبيانات المرجعية | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+{% include 'accounts/includes/sysadmin_nav.html' %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-building-columns text-primary me-2"></i> إدارة المؤسسات والبيانات المرجعية التقنية</h3>
+        <small class="text-muted">إدارة التسلسل الهرمي (مؤسسة ← كلية ← قسم اختياري ← برنامج أكاديمي) والتصنيفات المرجعية مع الحفاظ على عزل البيانات</small>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Add Institution -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <h6 class="fw-bold text-primary border-bottom pb-2">1. إضافة مؤسسة تعليمية</h6>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_institution">
+                <input type="text" name="name" class="form-control form-control-sm mb-2" placeholder="اسم المؤسسة بالعربية" required>
+                <input type="text" name="code" class="form-control form-control-sm mb-2" placeholder="الرمز التعريفي (مثال: UNIV-X)" required>
+                <select name="institution_type" class="form-select form-select-sm mb-2">
+                    {% for val, lbl in institution_types %}<option value="{{ val }}">{{ lbl }}</option>{% endfor %}
+                </select>
+                <input type="text" name="governorate" class="form-control form-control-sm mb-2" placeholder="المحافظة" required>
+                <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">إضافة مؤسسة</button>
+            </form>
+        </div>
+    </div>
+    <!-- Add College -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <h6 class="fw-bold text-success border-bottom pb-2">2. إضافة كلية</h6>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_college">
+                <select name="institution_id" class="form-select form-select-sm mb-2" required>
+                    <option value="">-- اختر المؤسسة --</option>
+                    {% for inst in institutions %}<option value="{{ inst.id }}">{{ inst.name }}</option>{% endfor %}
+                </select>
+                <input type="text" name="name" class="form-control form-control-sm mb-2" placeholder="اسم الكلية" required>
+                <input type="text" name="dean_name" class="form-control form-control-sm mb-2" placeholder="اسم عميد الكلية">
+                <button type="submit" class="btn btn-sm btn-success w-100 fw-bold">إضافة كلية</button>
+            </form>
+        </div>
+    </div>
+    <!-- Add Department -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <h6 class="fw-bold text-info border-bottom pb-2">3. إضافة قسم أكاديمي</h6>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_department">
+                <select name="college_id" class="form-select form-select-sm mb-2" required>
+                    <option value="">-- اختر الكلية --</option>
+                    {% for col in colleges %}<option value="{{ col.id }}">{{ col.name }} ({{ col.institution.name }})</option>{% endfor %}
+                </select>
+                <input type="text" name="name" class="form-control form-control-sm mb-2" placeholder="اسم القسم الأكاديمي" required>
+                <input type="text" name="head_name" class="form-control form-control-sm mb-2" placeholder="رئيس القسم">
+                <button type="submit" class="btn btn-sm btn-info text-dark w-100 fw-bold">إضافة قسم</button>
+            </form>
+        </div>
+    </div>
+    <!-- Add Academic Program -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <h6 class="fw-bold text-dark border-bottom pb-2">4. إضافة برنامج أكاديمي</h6>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_program">
+                <select name="college_id" class="form-select form-select-sm mb-2" required>
+                    <option value="">-- اختر الكلية --</option>
+                    {% for col in colleges %}<option value="{{ col.id }}">{{ col.name }} ({{ col.institution.name }})</option>{% endfor %}
+                </select>
+                <select name="department_id" class="form-select form-select-sm mb-2">
+                    <option value="">-- قسم اختياري --</option>
+                    {% for d in departments %}<option value="{{ d.id }}">{{ d.name }} ({{ d.college.name }})</option>{% endfor %}
+                </select>
+                <input type="text" name="name" class="form-control form-control-sm mb-2" placeholder="اسم البرنامج الأكاديمي" required>
+                <input type="text" name="code" class="form-control form-control-sm mb-2" placeholder="رمز البرنامج (مثال: CS-01)">
+                <button type="submit" class="btn btn-sm btn-dark w-100 fw-bold">إضافة برنامج</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom p-4 mb-4">
+    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">السجل الهرمي للمؤسسات والكليات والأقسام والبرامج ({{ institutions.count }} مؤسسة)</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle small">
+            <thead class="table-light">
+                <tr><th>الرمز</th><th>المؤسسة التعليمية</th><th>النوع</th><th>المحافظة</th><th>الكليات ({{ colleges.count }})</th><th>البرامج ({{ programs.count }})</th></tr>
+            </thead>
+            <tbody>
+                {% for inst in institutions %}
+                <tr>
+                    <td class="font-monospace fw-bold">{{ inst.code }}</td>
+                    <td class="fw-bold"><a href="{% url 'institutions:detail' inst.pk %}">{{ inst.name }}</a></td>
+                    <td>{{ inst.get_institution_type_display }}</td>
+                    <td>{{ inst.governorate }}</td>
+                    <td>{{ inst.colleges.count }} كلية</td>
+                    <td>
+                        {% for col in inst.colleges.all %}
+                            {% for p in col.programs.all %}<span class="badge bg-light text-dark border me-1">{{ p.name }}</span>{% endfor %}
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

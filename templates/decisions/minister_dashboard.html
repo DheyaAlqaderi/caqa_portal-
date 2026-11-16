@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}ديوان معالي وزير التعليم العالي والبحث العلمي | الإشراف الاستراتيجي والسيادي{% endblock %}
+
+{% block extra_css %}
+<style>
+    .minister-hero {
+        background: linear-gradient(135deg, #0b412e 0%, #0f1e2f 60%, #172554 100%);
+        border-radius: 16px;
+        padding: 2.5rem 2rem;
+        color: #fff;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(15, 30, 47, 0.25);
+        border: 2px solid rgba(196, 154, 69, 0.4);
+    }
+    .minister-badge {
+        background: rgba(196, 154, 69, 0.2);
+        border: 1px solid #c49a45;
+        color: #f6d892;
+        padding: 0.4rem 1rem;
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .stat-card-gold {
+        border-right: 5px solid #c49a45;
+    }
+    .stat-card-emerald {
+        border-right: 5px solid #0b6848;
+    }
+    .stat-card-blue {
+        border-right: 5px solid #2563eb;
+    }
+    .stat-card-purple {
+        border-right: 5px solid #7c3aed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 my-4">
+
+    <!-- 1. Ministerial Sovereign Header Banner -->
+    <div class="minister-hero mb-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="minister-badge mb-3">
+                    <i class="fa-solid fa-landmark-dome"></i> الجمهورية اليمنية • مجلس الوزراء • وزارة التعليم العالي والبحث العلمي
+                </div>
+                <h2 class="fw-bold text-white mb-2">
+                    ديوان معالي وزير التعليم العالي والبحث العلمي
+                </h2>
+                <p class="text-white-50 mb-3 fs-6 leading-relaxed">
+                    منصة الإشراف السياسي والاستراتيجي على قطاع التعليم العالي ومؤسساته في الجمهورية، 
+                    وترشيح قيادة وأعضاء مجلس إدارة مجلس الاعتماد الأكاديمي للرفع بهم لدولة رئيس مجلس الوزراء، 
+                    والمصادقة والاعتماد النهائي على السياسات واللوائح العامة الصادرة عن المجلس.
+                </p>
+                <div class="d-flex flex-wrap gap-2 text-warning small fw-bold">
+                    <span><i class="fa-solid fa-user-tie me-1"></i> التبعية: عضو الحكومة (يتبع دولة رئيس مجلس الوزراء)</span>
+                    <span class="text-white-50">•</span>
+                    <span><i class="fa-solid fa-scroll me-1"></i> سلطة التعيين: يُعيّن بقرار جمهوري</span>
+                    <span class="text-white-50">•</span>
+                    <span><i class="fa-solid fa-calendar me-1"></i> تاريخ اليوم: {{ now_date }}</span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                <div class="d-inline-flex flex-column gap-2">
+                    <a href="{% url 'decisions:minister_nominations_list' %}" class="btn btn-warning btn-lg fw-bold px-4 shadow">
+                        <i class="fa-solid fa-user-plus me-1"></i> ترشيحات مجلس الإدارة
+                    </a>
+                    <a href="{% url 'decisions:minister_policies_list' %}" class="btn btn-outline-light btn-lg fw-bold px-4">
+                        <i class="fa-solid fa-stamp me-1"></i> المصادقة على اللوائح والسياسات
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Strategic KPI Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Card 1: Higher Education Sector -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-custom p-3 stat-card-gold h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="text-muted small fw-bold">مؤسسات التعليم العالي</div>
+                        <h2 class="fw-bold text-dark mb-0 mt-1">{{ total_institutions }}</h2>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle">
+                        <i class="fa-solid fa-building-columns fs-4"></i>
+                    </div>
+                </div>
+                <div class="small text-muted pt-2 border-top">
+                    <span class="text-success fw-bold">{{ public_universities }} حكومية</span> • 
+                    <span class="text-primary fw-bold">{{ private_universities }} أهلية</span> • 
+                    <span>{{ community_colleges }} كليات مجتمع</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Programs and Quality Accreditation -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-custom p-3 stat-card-emerald h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="text-muted small fw-bold">البرامج الأكاديمية والاعتماد</div>
+                        <h2 class="fw-bold text-success mb-0 mt-1">{{ total_programs }}</h2>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
+                        <i class="fa-solid fa-graduation-cap fs-4"></i>
+                    </div>
+                </div>
+                <div class="small text-muted pt-2 border-top">
+                    <span class="text-success fw-bold">{{ prog_accredited_count }} برنامج معتمد</span> • 
+                    <span class="text-dark fw-bold">{{ inst_accredited_count }} اعتماد مؤسسي</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Mandate 2: Board Nominations to PM -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-custom p-3 stat-card-blue h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="text-muted small fw-bold">ترشيحات مجلس إدارة الاعتماد</div>
+                        <h2 class="fw-bold text-primary mb-0 mt-1">{{ nominations_total }}</h2>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle">
+                        <i class="fa-solid fa-users-viewfinder fs-4"></i>
+                    </div>
+                </div>
+                <div class="small text-muted pt-2 border-top">
+                    <span class="text-warning fw-bold">{{ nominations_pending_pm }} مرفوعة لرئيس الوزراء</span> • 
+                    <span class="text-success fw-bold">{{ nominations_decreed }} بقرار جمهوري</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Mandate 3: Council Policies Ratification -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-custom p-3 stat-card-purple h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="text-muted small fw-bold">اللوائح والسياسات العامة للمجلس</div>
+                        <h2 class="fw-bold text-purple mb-0 mt-1" style="color: #7c3aed;">{{ policies_total }}</h2>
+                    </div>
+                    <div class="p-3 rounded-circle" style="background: rgba(124, 58, 237, 0.1); color: #7c3aed;">
+                        <i class="fa-solid fa-scale-balanced fs-4"></i>
+                    </div>
+                </div>
+                <div class="small text-muted pt-2 border-top">
+                    <span class="text-danger fw-bold">{{ policies_pending }} بانتظار المصادقة</span> • 
+                    <span class="text-success fw-bold">{{ policies_ratified }} مصادق عليها وزارياً</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Two Main Workspaces: Nominations & Pending Policies -->
+    <div class="row g-4 mb-4">
+        <!-- Left: Mandate 2 - Board of Directors Nominations -->
+        <div class="col-lg-6">
+            <div class="card card-custom h-100 border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fa-solid fa-users-gear text-primary me-2"></i> ترشيحات مجلس الإدارة المرفوعة لرئاسة الوزراء
+                        </h5>
+                        <small class="text-muted">ترشيح رئيس وأعضاء مجلس الإدارة لاستصدار القرارات الجمهورية</small>
+                    </div>
+                    <a href="{% url 'decisions:minister_nominations_list' %}" class="btn btn-sm btn-outline-primary fw-bold">
+                        إدارة الترشيحات <i class="fa-solid fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    {% if recent_nominations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>اسم المرشح</th>
+                                    <th>المنصب المقترح</th>
+                                    <th>حالة الترشيح</th>
+                                    <th>المذكرة / القرار</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for nom in recent_nominations %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ nom.nominee_name }}</div>
+                                        <small class="text-muted">{{ nom.academic_rank }} • {{ nom.current_institution }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ nom.get_proposed_position_display }}</span>
+                                    </td>
+                                    <td>
+                                        {% if nom.status == 'SUBMITTED_TO_PM' %}
+                                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-paper-plane me-1"></i> مرفوع لرئيس الوزراء</span>
+                                        {% elif nom.status == 'DECREE_ISSUED' %}
+                                        <span class="badge bg-success"><i class="fa-solid fa-check-circle me-1"></i> صدر قرار جمهوري</span>
+                                        {% elif nom.status == 'DRAFT' %}
+                                        <span class="badge bg-secondary">مسودة</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">غير معتمد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if nom.republican_decree_number %}
+                                        <small class="fw-bold text-success font-monospace">{{ nom.republican_decree_number }}</small>
+                                        {% elif nom.nomination_letter_ref %}
+                                        <small class="text-muted font-monospace">{{ nom.nomination_letter_ref }}</small>
+                                        {% else %}
+                                        <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-user-clock display-5 mb-2 text-secondary"></i>
+                        <div>لا توجد ترشيحات مسجلة حالياً. يمكنك إضافة ترشيحات جديدة لرفعها لدولة رئيس الوزراء.</div>
+                        <a href="{% url 'decisions:minister_nominations_list' %}" class="btn btn-warning fw-bold btn-sm mt-3">
+                            <i class="fa-solid fa-plus me-1"></i> تسجيل ترشيح جديد
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Mandate 3 - Policies and Regulations Awaiting Ministerial Ratification -->
+        <div class="col-lg-6">
+            <div class="card card-custom h-100 border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fa-solid fa-stamp text-danger me-2"></i> اللوائح والسياسات المعروضة للمصادقة الوزارية
+                        </h5>
+                        <small class="text-muted">الاعتماد النهائي بقرار وزاري وإصدار التوجيهات النافذة</small>
+                    </div>
+                    <a href="{% url 'decisions:minister_policies_list' %}" class="btn btn-sm btn-outline-danger fw-bold">
+                        كافة اللوائح <i class="fa-solid fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    {% if pending_policies %}
+                    <div class="list-group list-group-flush">
+                        {% for pol in pending_policies %}
+                        <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-start border-bottom">
+                            <div class="me-3">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-primary">{{ pol.get_policy_type_display }}</span>
+                                    <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i> بانتظار قرار معالي الوزير</span>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-1">{{ pol.title }}</h6>
+                                <p class="text-muted small mb-1">{{ pol.summary|truncatewords:20 }}</p>
+                                <small class="text-muted">
+                                    <i class="fa-solid fa-calendar me-1"></i> أُحيلت بتاريخ: {{ pol.submission_date }} • مرجع الجلسة: {{ pol.council_session_ref }}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <a href="{% url 'decisions:minister_policies_list' %}" class="btn btn-sm btn-success fw-bold text-nowrap">
+                                    <i class="fa-solid fa-signature me-1"></i> مصادقة وقرار
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-circle-check text-success display-5 mb-2"></i>
+                        <h6 class="fw-bold text-success">لا توجد لوائح أو سياسات معلقة</h6>
+                        <p class="small text-muted mb-0">كافة اللوائح والسياسات المحالة من مجلس الاعتماد الأكاديمي تمت المصادقة عليها وزارياً.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Strategic Higher Education Insights: Geographic Distribution & Council Decisions -->
+    <div class="row g-4">
+        <!-- Geographic Distribution -->
+        <div class="col-lg-4">
+            <div class="card card-custom h-100 p-4 border-0 shadow-sm">
+                <h5 class="fw-bold text-dark mb-3">
+                    <i class="fa-solid fa-map-location-dot text-success me-2"></i> انتشار الجامعات حسب المحافظات
+                </h5>
+                <div class="list-group list-group-flush">
+                    {% for g in governorate_stats %}
+                    <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-secondary"><i class="fa-solid fa-location-dot text-danger me-2"></i> {{ g.governorate }}</span>
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill fs-6 px-3">{{ g.total }} مؤسسة</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-muted small">لا توجد بيانات جغرافية كافية.</div>
+                    {% endfor %}
+                </div>
+                <div class="mt-auto pt-3 border-top text-center">
+                    <a href="{% url 'public_registry' %}" target="_blank" class="btn btn-outline-secondary btn-sm fw-bold">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> استعراض السجل الوطني العام
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Council Decisions -->
+        <div class="col-lg-8">
+            <div class="card card-custom h-100 p-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-award text-warning me-2"></i> آخر قرارات الاعتماد الصادرة عن المجلس
+                    </h5>
+                    <a href="{% url 'decisions:meetings_list' %}" class="btn btn-sm btn-outline-secondary">
+                        سجل الجلسات والقرارات
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>المؤسسة / البرنامج</th>
+                                <th>نوع الاعتماد</th>
+                                <th>رقم القرار الوزاري/المجلس</th>
+                                <th>فترة السريان</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dec in recent_decisions %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ dec.application.institution.name }}</div>
+                                    {% if dec.application.program %}
+                                    <small class="text-primary">{{ dec.application.program.name }}</small>
+                                    {% else %}
+                                    <small class="text-success">اعتماد مؤسسي كامل</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {% if dec.decision_type == 'FULL_ACCREDITATION' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                        {{ dec.get_decision_type_display }}
+                                    </span>
+                                </td>
+                                <td class="font-monospace small fw-bold">{{ dec.decree_number }}</td>
+                                <td class="small">{{ dec.start_date|default:'-' }} إلى {{ dec.expiry_date|default:'-' }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">لا توجد قرارات اعتماد حديثة مسجلة.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

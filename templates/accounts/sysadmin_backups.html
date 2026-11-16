@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة النسخ الاحتياطي والاستعادة المحمية | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+{% include 'accounts/includes/sysadmin_nav.html' %}
+
+<div class="card card-custom p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-database text-success me-2"></i> إدارة النسخ الاحتياطي والاستعادة المحمية (Backup & Restore)</h3>
+            <small class="text-muted">إنشاء نسخ احتياطية موثقة ببصمة SHA-256، التحقق من سلامتها، والاستعادة المحمية مع أخذ نسخة وقائية تلقائية</small>
+        </div>
+        <form method="POST" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_backup">
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="ملاحظة النسخة الاحتياطية..." style="width: 220px;">
+            <button type="submit" class="btn btn-success fw-bold shadow-sm">
+                <i class="fa-solid fa-plus-circle me-1"></i> إنشاء نسخة احتياطية يدوية الآن
+            </button>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle small">
+            <thead class="table-light">
+                <tr><th>اسم النسخة الاحتياطية</th><th>النوع</th><th>الحجم</th><th>البصمة الرقمية (SHA-256)</th><th>الحالة</th><th>تاريخ الإنشاء</th><th>إجراءات التحقق والاستعادة</th></tr>
+            </thead>
+            <tbody>
+                {% for b in backups %}
+                <tr>
+                    <td class="fw-bold font-monospace">{{ b.backup_name }}</td>
+                    <td><span class="badge bg-info text-dark">{{ b.get_backup_type_display }}</span></td>
+                    <td class="font-monospace">{{ b.formatted_size }}</td>
+                    <td class="font-monospace text-muted">{{ b.sha256_checksum|truncatechars:24 }}</td>
+                    <td>
+                        {% if b.is_verified %}<span class="badge bg-success">{{ b.get_status_display }}</span>
+                        {% else %}<span class="badge bg-danger">{{ b.get_status_display }}</span>{% endif %}
+                    </td>
+                    <td class="font-monospace">{{ b.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <form method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="verify_backup">
+                                <input type="hidden" name="backup_id" value="{{ b.id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-primary fw-bold">فحص السلامة</button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger fw-bold" data-bs-toggle="modal" data-bs-target="#restoreModal{{ b.id }}">
+                                استعادة محمية
+                            </button>
+                        </div>
+
+                        <!-- Protected Restore Modal -->
+                        <div class="modal fade" id="restoreModal{{ b.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="restore_backup">
+                                        <input type="hidden" name="backup_id" value="{{ b.id }}">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title fw-bold">تأكيد عملية الاستعادة المحمية: {{ b.backup_name }}</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="alert alert-warning small">
+                                                سيقوم النظام أولاً بالتحقق من بصمة SHA-256 وإنشاء <strong>نسخة احتياطية وقائية (Pre-Restore Backup)</strong> قبل تنفيذ الاستعادة وتوثيق العملية في سجل التدقيق.
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">اكتب رمز التأكيد الإلزامي (<code>CONFIRM-RESTORE</code>):</label>
+                                                <input type="text" name="confirmation_code" class="form-control font-monospace" placeholder="CONFIRM-RESTORE" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">السبب والمبرر الرسمي للاستعادة:</label>
+                                                <textarea name="restore_reason" class="form-control" rows="2" required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                            <button type="submit" class="btn btn-danger fw-bold">تأكيد وتنفيذ الاستعادة المحمية</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center py-4 text-muted">لا توجد نسخ احتياطية مسجلة بعد. اضغط على «إنشاء نسخة احتياطية يدوية الآن» أعلاه.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

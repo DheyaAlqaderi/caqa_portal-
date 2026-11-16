@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير الدراسة الذاتية (SSR) | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-success mb-1">المرحلة 1: التهيئة والدراسة الذاتية</span>
+                    <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-file-lines text-success me-2"></i> تقرير التقييم والدراسة الذاتية المؤسسية / البرامجية (SSR)</h4>
+                    <small class="text-muted">الطلب رقم: {{ app.application_number }} - {{ app.institution.name }}</small>
+                </div>
+                <div>
+                    <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة للملف
+                    </a>
+                </div>
+            </div>
+
+            {% if ssr.is_locked %}
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="fa-solid fa-lock fs-3 me-3 text-warning"></i>
+                <div>
+                    <strong>تم تسليم التقرير رسمياً وإغلاقه:</strong> التقرير معتمد ومسلم إلى أمانة المجلس الفنية للفحص المكتبي الأولي.
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">أعضاء لجنة التقييم الذاتي الداخلية ورتبهم الأكاديمية:</label>
+                    <textarea name="internal_committee_names" class="form-control" rows="3" required {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.internal_committee_names }}</textarea>
+                    <small class="text-muted">اذكر أسماء رئيس وأعضاء لجان الدراسة الذاتية وفرق العمل التي أعدت التقرير داخل الجامعة/الكلية.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">الملخص التنفيذي للدراسة الذاتية (Executive Summary):</label>
+                    <textarea name="executive_summary" class="form-control" rows="5" required {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.executive_summary }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">الخلفية التاريخية وسياق المؤسسة / البرنامج:</label>
+                    <textarea name="historical_background" class="form-control" rows="4" {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.historical_background }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">المنهجية المتبعة وآليات جمع وتحليل البيانات والشواهد:</label>
+                    <textarea name="methodology" class="form-control" rows="4" {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.methodology }}</textarea>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-success"><i class="fa-solid fa-thumbs-up me-1"></i> أبرز نقاط القوة بحسب التقييم الداخلي:</label>
+                        <textarea name="strengths_overview" class="form-control" rows="4" {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.strengths_overview }}</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> التحديات وفرص التحسين ذات الأولوية:</label>
+                        <textarea name="weaknesses_and_challenges" class="form-control" rows="4" {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.weaknesses_and_challenges }}</textarea>
+                    </div>
+                </div>
+
+                {% if not ssr.is_locked %}
+                <div class="d-flex justify-content-between pt-3 border-top">
+                    <button type="submit" name="save_draft" class="btn btn-secondary px-4">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> حفظ كمسودة
+                    </button>
+
+                    <button type="submit" name="submit_ssr_officially" class="btn btn-success px-4 fw-bold" onclick="return confirm('هل أنت متأكد من تسليم تقرير الدراسة الذاتية رسمياً للمجلس؟ سيتم نقله للمرحلة 2 (الفحص المكتبي) وإغلاق التعديل.');">
+                        <i class="fa-solid fa-paper-plane me-1"></i> تسليم التقرير رسمياً للأمانة الفنية للمجلس
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

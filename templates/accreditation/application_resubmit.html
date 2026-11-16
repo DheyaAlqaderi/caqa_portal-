@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل وإعادة تقديم طلب الاعتماد | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'accreditation:application_detail' app.pk %}">ملف الطلب {{ app.application_number }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">تعديل واستيفاء النواقص وإعادة التقديم</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-file-pen text-primary me-2"></i>
+                تعديل واستيفاء نواقص طلب الاعتماد رقم: {{ app.application_number }}
+            </h3>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'accreditation:application_report' app.pk %}" class="btn btn-outline-primary fw-bold">
+                <i class="fa-solid fa-file-invoice me-1"></i> استعراض تقرير طلب الاعتماد الرسمي
+            </a>
+            <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-right me-1"></i> العودة لملف الطلب
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Rejection Reasons -->
+    <div class="alert alert-danger p-4 mb-4 rounded-3 shadow-sm border-0">
+        <div class="d-flex align-items-start">
+            <i class="fa-solid fa-circle-exclamation text-danger fs-2 me-3 mt-1"></i>
+            <div class="w-100">
+                <h5 class="fw-bold text-danger mb-1">تقرير أسباب التعديل / عدم القبول الصادر عن مدير عام الاعتماد والتراخيص:</h5>
+                <p class="mb-0 text-dark fs-6 bg-white p-3 rounded border border-danger mt-2">
+                    {{ app.rejection_reason|default:"الطلب بحاجة لتعديل واستيفاء البيانات والشروط الرسمية وإعادة تقديمه للمراجعة." }}
+                </p>
+                <div class="small text-muted mt-2">
+                    تاريخ صدور تقرير التعديل: <strong>{{ app.reviewed_at|date:"Y-m-d H:i" }}</strong> • المراجع: <strong>{{ app.reviewed_by.get_full_name|default:"مدير عام الاعتماد والتراخيص" }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit & Resubmit Form -->
+    <div class="card card-custom p-4 shadow-sm border-top border-primary border-4">
+        <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+            <i class="fa-solid fa-clipboard-check text-primary me-2"></i>
+            نموذج تعديل تقرير طلب الاعتماد واستيفاء النواقص وإرساله مرة أخرى لمدير عام الاعتماد
+        </h5>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">اسم المؤسسة التعليمية:</label>
+                    <input type="text" class="form-control bg-light" value="{{ app.institution.name }}" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">مسار الاعتماد:</label>
+                    <input type="text" class="form-control bg-light" value="{{ app.get_track_display }}" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">العام الجامعي المستهدف:</label>
+                    <input type="text" name="academic_year" class="form-control font-monospace" value="{{ app.academic_year|default:'2025/2026' }}">
+                </div>
+                {% if app.program %}
+                <div class="col-md-12">
+                    <label class="form-label fw-bold">البرنامج الأكاديمي المستهدف:</label>
+                    <input type="text" class="form-control bg-light" value="{{ app.program.name }}" disabled>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">رقم قرار الإنشاء / الترخيص:</label>
+                    <input type="text" name="establishment_decree_number" class="form-control font-monospace" value="{{ app.establishment_decree_number|default:app.institution.decree_number }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">اسم ضابط الاتصال بالمؤسسة: <span class="text-danger">*</span></label>
+                    <input type="text" name="contact_person_name" class="form-control" value="{{ app.contact_person_name }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">رقم الهاتف / الواتساب: <span class="text-danger">*</span></label>
+                    <input type="text" name="contact_phone" class="form-control font-monospace" value="{{ app.contact_phone }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">البريد الإلكتروني للاتصال: <span class="text-danger">*</span></label>
+                    <input type="email" name="contact_email" class="form-control font-monospace" value="{{ app.contact_email }}" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">وثيقة الترخيص / قرار الإنشاء المحدث (اختياري في حال التعديل):</label>
+                {% if app.initial_license_document %}
+                <div class="mb-2 text-muted small">
+                    الملف الحالي: <a href="{{ app.initial_license_document.url }}" target="_blank" class="text-decoration-none"><i class="fa-solid fa-file-pdf text-danger me-1"></i> تحميل الوثيقة المرفقة سابقاً</a>
+                </div>
+                {% endif %}
+                <input type="file" name="initial_license_document" class="form-control">
+                <div class="form-text small">قم برفع الوثيقة المستوفية إذا كان سبب الرفض يتعلق بوثيقة التأسيس أو الترخيص.</div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">شرح وتفاصيل التعديلات والمعالجة المنجزة: <span class="text-danger">*</span></label>
+                <textarea name="notes" rows="4" class="form-control" placeholder="وضح هنا الإجراءات والتعديلات التي تمت لمعالجة النواقص وأسباب الرفض الموضحة أعلاه..." required></textarea>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary px-4">إلغاء</a>
+                <button type="submit" class="btn btn-success fw-bold px-4 py-2" onclick="return confirm('هل أنت متأكد من إعادة إرسال الطلب بعد التعديل لمدير عام الاعتماد ورئيس الجامعة؟');">
+                    <i class="fa-solid fa-paper-plane me-1"></i> اعتماد التعديل وإعادة تقديم الطلب رسمياً
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

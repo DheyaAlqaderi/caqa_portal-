@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}مراقبة مسارات العمل التشغيلية (للقراءة فقط) | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+{% include 'accounts/includes/sysadmin_nav.html' %}
+
+<div class="card card-custom p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3 flex-wrap gap-2">
+        <div>
+            <span class="badge bg-info text-dark mb-1"><i class="fa-solid fa-eye me-1"></i> مراقبة تقنية وتشغيلية (للقراءة فقط - Read Only)</span>
+            <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-diagram-project text-primary me-2"></i> لوحة مراقبة سير العمليات والمسارات الـ 20 في البوابة</h3>
+            <small class="text-muted">متابعة الحالة الزمنية والجهة المسؤولة والإجراء المعلق لكل مسار دون صلاحية التدخل أو تغيير القرارات الأكاديمية</small>
+        </div>
+    </div>
+
+    <h6 class="fw-bold text-dark mb-2">ملخص نقاط التحقق والمسارات الـ 20 المعتمدة في دورة الاعتماد:</h6>
+    <div class="row g-2 mb-4">
+        {% for cp in checkpoints_20 %}
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-2 border rounded bg-light h-100 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-bold small text-dark">{{ cp.num }}. {{ cp.name }}</div>
+                    <small class="text-muted" style="font-size: 0.72rem;">{{ cp.dept }}</small>
+                </div>
+                <span class="badge bg-primary fs-6">{{ cp.count }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <form method="GET" class="row g-2 mb-3">
+        <div class="col-md-5">
+            <select name="institution" class="form-select form-select-sm">
+                <option value="">-- جميع المؤسسات التعليمية --</option>
+                {% for inst in institutions %}<option value="{{ inst.id }}" {% if filters.institution == inst.id|stringformat:"s" %}selected{% endif %}>{{ inst.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5">
+            <select name="status" class="form-select form-select-sm">
+                <option value="">-- جميع حالات المسار --</option>
+                {% for code, lbl in statuses %}<option value="{{ code }}" {% if filters.status == code %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">تصفية المسارات</button></div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle small">
+            <thead class="table-light">
+                <tr><th>رقم الطلب</th><th>المؤسسة / البرنامج</th><th>المرحلة والحالة الحالية</th><th>الجهة / الدور المسؤول</th><th>الإجراء المعلق</th><th>المدة بالحالة</th><th>آخر تحديث</th></tr>
+            </thead>
+            <tbody>
+                {% for item in application_workflows %}
+                <tr>
+                    <td class="font-monospace fw-bold">{{ item.application.application_number }}</td>
+                    <td>{{ item.application.institution.name }} {% if item.application.program %}— {{ item.application.program.name }}{% endif %}</td>
+                    <td><span class="badge bg-secondary">{{ item.application.get_status_display }}</span></td>
+                    <td class="fw-bold text-primary">{{ item.responsible_role }}</td>
+                    <td>{{ item.pending_action }}</td>
+                    <td class="text-center font-monospace">{{ item.days_in_status }} يوم</td>
+                    <td class="font-monospace">{{ item.application.updated_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

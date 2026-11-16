@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل الزيارة الاستطلاعية | {{ visit.decision.decree_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-warning text-dark mb-1">مهمة تقييم ومتابعة ميدانية</span>
+        <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-building-circle-check text-warning me-2"></i> ملف الزيارة الاستطلاعية التحققية</h4>
+        <small class="text-muted">{{ decision.application.institution.name }} {% if decision.application.program %}- {{ decision.application.program.name }}{% endif %} ({{ decision.decree_number }})</small>
+    </div>
+    <div>
+        <a href="{% url 'surveillance:reviewer_assignments' %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة للمهام
+        </a>
+    </div>
+</div>
+
+{% if not has_declared_coi %}
+<!-- COI Requirement Banner -->
+<div class="card card-custom p-4 mb-4 border-start border-4 border-warning bg-light">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <i class="fa-solid fa-shield-halved fa-2x text-warning"></i>
+        <div>
+            <h5 class="fw-bold text-dark mb-1">إقرار النزاهة والحياد وعدم تعارض المصالح (إلزامي)</h5>
+            <p class="text-muted small mb-0">وفقاً للائحة مجلس الاعتماد الأكاديمي، يجب على المحكم الخارجي المصادقة على خلو مهمته من أي تعارض مصالح قبل الاطلاع على وثائق الخطة أو الشواهد أو تقديم تقرير المراجعة.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{% url 'surveillance:reviewer_visit_coi' visit.pk %}" class="bg-white p-3 border rounded">
+        {% csrf_token %}
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="acknowledge_coi" value="1" id="coiCheck" required>
+            <label class="form-check-label fw-bold small text-dark" for="coiCheck">
+                أقر أنا المحكّم ({{ request.user.get_full_name|default:request.user.username }}) بعدم وجود أي مصالح مالية أو علاقات عمل أو قرابة أو استشارات مع مؤسسة ({{ decision.application.institution.name }}) تؤثر على حيدتي واستقلاليتي في هذه المهمة، وأتعهد بأداء التقييم بأمانة وموضوعية.
+            </label>
+        </div>
+        <button type="submit" class="btn btn-warning fw-bold text-dark">
+            <i class="fa-solid fa-signature me-1"></i> توقيع وتأكيد إقرار النزاهة والحياد
+        </button>
+    </form>
+</div>
+{% else %}
+
+<!-- Unlocked Assessment Section -->
+<div class="row g-4 mb-4">
+    <!-- Visit Details & Scope -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-info-circle text-primary me-2"></i> بيانات ونطاق التكليف</h5>
+            <div class="mb-2">
+                <span class="text-muted small">نوع الزيارة:</span>
+                <span class="fw-bold">{{ visit.get_visit_type_display }}</span>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small">تاريخ الزيارة المحدد:</span>
+                <span class="fw-bold">{{ visit.visit_date|date:"Y-m-d" }}</span>
+            </div>
+            <div class="mb-3">
+                <span class="text-muted small d-block">نطاق التكليف والمخرجات المطلوبة:</span>
+                <div class="p-2 bg-light border rounded small">{{ visit.scope_and_deliverables|default:"التحقق من إزالة نقاط الضعف المسجلة في تقرير الاعتماد واستيفاء خطة التحسين." }}</div>
+            </div>
+            <div class="mb-0">
+                <span class="text-muted small d-block">قرار الاعتماد ذو الصلة:</span>
+                <span class="fw-bold text-primary">{{ decision.decree_number }}</span>
+                <small class="text-muted d-block">{{ decision.get_decision_type_display }} ({{ decision.validity_years }} سنوات)</small>
+            </div>
+        </div>
+
+        <!-- Plan and Evidence Documents -->
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-folder-open text-success me-2"></i> وثائق وشواهد خطة التحسين</h5>
+            {% if evidences %}
+            <ul class="list-group list-group-flush small">
+                {% for ev in evidences %}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                    <div>
+                        <span class="fw-bold">{{ ev.title }}</span>
+                        {% if ev.description %}<small class="text-muted d-block">{{ ev.description }}</small>{% endif %}
+                    </div>
+                    <a href="{% url 'surveillance:download_evidence' ev.pk %}" class="btn btn-sm btn-outline-primary py-0">
+                        <i class="fa-solid fa-download me-1"></i> تحميل
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted small mb-0">لم تقم المؤسسة برفع وثائق شواهد إضافية بعد.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Reviewer Report Submission Form -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-file-pen text-warning text-dark me-2"></i> تقرير ومخرجات المعاينة الاستطلاعية</h5>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">تقرير ونتائج المعاينة الميدانية الشاملة:</label>
+                    <textarea name="field_audit_report" class="form-control" rows="4" required placeholder="وصف نتائج الفحص والمعاينة الواقعية...">{{ visit.field_audit_report }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">التقدم المحرز الذي تم التحقق منه والتأكد من استيفائه:</label>
+                    <textarea name="findings_verified_progress" class="form-control" rows="3" placeholder="أبرز التوصيات التي تم إنجازها بنجاح...">{{ visit.findings_verified_progress }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">الفجوات ونقاط القصور المتبقية (إن وجدت):</label>
+                    <textarea name="remaining_gaps" class="form-control" rows="2" placeholder="المتطلبات التي ما زالت بحاجة لمعالجة...">{{ visit.remaining_gaps }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">ملاحظات فحص الأدلة والشواهد:</label>
+                    <textarea name="supporting_evidence_notes" class="form-control" rows="2" placeholder="مدى كفاية وموثوقية الوثائق الثبوتية المقدمة...">{{ visit.supporting_evidence_notes }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">نتيجة الزيارة والامتثال العام للمعايير:</label>
+                    <select name="compliance_result" class="form-select">
+                        {% for val, label in compliance_statuses %}
+                        <option value="{{ val }}" {% if visit.compliance_result == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">التوصيات المرفوعة إلى الأمانة العامة ومجلس الإدارة:</label>
+                    <textarea name="recommendations_to_council" class="form-control" rows="3" required placeholder="التوصيات الختامية المرفوعة...">{{ visit.recommendations_to_council }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-warning fw-bold text-dark w-100">
+                    <i class="fa-solid fa-paper-plane me-1"></i> تسليم تقرير الزيارة الاستطلاعية للأمانة العامة
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

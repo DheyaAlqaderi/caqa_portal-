@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}سجل المعاملات والمذكرات السيادية للمجلس{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-folder-tree text-primary me-2"></i>
+                السجل العام للمعاملات والمذكرات السيادية
+            </h3>
+            <p class="text-muted mb-0">محرك تتبع ومطابقة القرارات السيادية، الترشيحات، اللوائح، التظلمات، ومذكرات مجلس الإدارة</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'decisions:meetings_list' %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-users-rectangle me-1"></i> جلسات المجلس
+            </a>
+            <a href="{% url 'decisions:minister_nominations_list' %}" class="btn btn-outline-primary">
+                <i class="fa-solid fa-user-tie me-1"></i> مذكرات الترشيح
+            </a>
+            <a href="{% url 'decisions:minister_policies_list' %}" class="btn btn-primary fw-bold shadow-sm">
+                <i class="fa-solid fa-scroll me-1"></i> اللوائح والسياسات
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card card-custom p-3 mb-4 shadow-sm border-0">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="البحث برقم المذكرة، العنوان، أو الملخص...">
+            </div>
+            <div class="col-md-3">
+                <select name="type" class="form-select">
+                    <option value="">-- جميع أنواع المعاملات --</option>
+                    {% for t_code, t_label in types %}
+                    <option value="{{ t_code }}" {% if current_type == t_code %}selected{% endif %}>{{ t_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">-- جميع الحالات --</option>
+                    {% for s_code, s_label in statuses %}
+                    <option value="{{ s_code }}" {% if current_status == s_code %}selected{% endif %}>{{ s_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100 fw-bold">
+                    <i class="fa-solid fa-filter me-1"></i> تصفية
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card card-custom p-4 shadow-sm border-0">
+        {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>رقم المرجع والمعاملة</th>
+                        <th>نوع المعاملة</th>
+                        <th>موضوع المذكرة / المعاملة</th>
+                        <th>الجهة الراسلة / المستخدم</th>
+                        <th>الجهة المستقبلة</th>
+                        <th>تاريخ القيد</th>
+                        <th>الحالة الراهنة</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trx in transactions %}
+                    <tr>
+                        <td class="fw-bold">
+                            <a href="{% url 'decisions:sovereign_transaction_detail' trx.pk %}" class="text-primary text-decoration-none">
+                                {{ trx.reference_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if trx.transaction_type == 'NOMINATION_MEMO' %}bg-info text-dark
+                                {% elif trx.transaction_type == 'PRESIDENTIAL_DECREE' %}bg-dark
+                                {% elif trx.transaction_type == 'POLICY_RATIFICATION' %}bg-warning text-dark
+                                {% elif trx.transaction_type == 'ACCREDITATION_DECISION' %}bg-success
+                                {% elif trx.transaction_type == 'GRIEVANCE_APPEAL' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ trx.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-bold text-dark">{{ trx.subject }}</span>
+                            {% if trx.application %}
+                            <div class="small text-muted">{{ trx.application.institution.name }} ({{ trx.application.application_number }})</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="fw-bold">{{ trx.sending_authority }}</small>
+                            {% if trx.sender %}
+                            <div class="small text-muted">{{ trx.sender.get_full_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="fw-bold text-secondary">{{ trx.receiving_authority }}</small>
+                            {% if trx.recipient %}
+                            <div class="small text-muted">{{ trx.recipient.get_full_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ trx.submission_date|date:"Y-m-d H:i" }}</small>
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if trx.status == 'COMPLETED' or trx.status == 'APPROVED' %}bg-success
+                                {% elif trx.status == 'UNDER_REVIEW' or trx.status == 'SUBMITTED' %}bg-warning text-dark
+                                {% elif trx.status == 'REJECTED' %}bg-danger
+                                {% elif trx.status == 'RETURNED_FOR_COMPLETION' %}bg-info text-dark
+                                {% else %}bg-secondary{% endif %}">
+                                {{ trx.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'decisions:sovereign_transaction_detail' trx.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fa-solid fa-eye me-1"></i> المسار والوثائق
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-folder-open display-4 mb-3 text-secondary"></i>
+            <h5>لا توجد معاملات أو مذكرات سيادية مسجلة مطابقة لخيارات البحث.</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

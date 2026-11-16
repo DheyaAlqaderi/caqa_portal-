@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}مطالبة مالية | {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-primary mb-1">المعاملات المالية والإدارية</span>
+                    <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-receipt text-primary me-2"></i> مطالبة مالية رقم: {{ invoice.invoice_number }}</h4>
+                    <small class="text-muted">طلب الاعتماد: {{ invoice.application.application_number }} - {{ invoice.application.institution.name }}</small>
+                </div>
+                <div>
+                    <a href="{% url 'operations:invoices_list' %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة
+                    </a>
+                </div>
+            </div>
+
+            <div class="card bg-light border p-3 mb-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">بند الرسوم المعتمد:</small>
+                        <span class="fw-bold">{{ invoice.fee_schedule.service_name }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">السند القانوني ولائحة الرسوم:</small>
+                        <span>{{ invoice.fee_schedule.regulatory_reference }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">إجمالي المبلغ المستحق:</small>
+                        <span class="fw-bold fs-4 text-success font-monospace">{{ invoice.total_amount|floatformat:0 }} ر.ي</span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">حالة السداد الراهنة:</small>
+                        <span class="badge {% if invoice.status == 'PAID' %}bg-success{% else %}bg-warning text-dark{% endif %} fs-6">
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {% if invoice.status != 'PAID' %}
+            <div class="card border p-3 mb-4">
+                <h6 class="fw-bold mb-3"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i> رفع إشعار وتأكيد التوريد البنكي للرسوم:</h6>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="upload_proof" value="1">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">رقم وتاريخ إشعار التوريد البنكي (البنك المركزي / البنك المعتمد):</label>
+                        <input type="text" name="payment_reference" class="form-control" placeholder="مثال: إشعار توريد رقم (99824) بتاريخ 2026-10-25" value="{{ invoice.payment_reference }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">صورة أو ملف سند الإيداع البنكي (PDF / صورة):</label>
+                        <input type="file" name="proof_of_payment" class="form-control" accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="fa-solid fa-save me-1"></i> حفظ وتأكيد إشعار التوريد
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            {% if invoice.proof_of_payment %}
+            <div class="alert alert-light border p-3 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fa-solid fa-file-check text-success me-2 fs-5"></i>
+                        <strong>سند التوريد المرفوع:</strong> {{ invoice.payment_reference }}
+                    </div>
+                    <a href="{{ invoice.proof_of_payment.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa-solid fa-eye me-1"></i> معاينة السند
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if user.is_council or user.is_staff %}
+            {% if invoice.status != 'PAID' %}
+            <div class="p-3 border rounded bg-light mb-4">
+                <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-stamp me-2"></i> اعتماد وتأكيد السداد (الإدارة المالية للمجلس):</h6>
+                <p class="small text-muted mb-3">بعد مطابقة إشعار التوريد مع كشف حساب المجلس بالبنك، يمكنك تأكيد السداد رسمياً.</p>
+                <div class="d-flex gap-2">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="confirm_payment" value="1">
+                        <button type="submit" class="btn btn-success fw-bold px-4">
+                            <i class="fa-solid fa-check-double me-1"></i> اعتماد السداد المالي وإبراء الذمة
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-outline-danger fw-bold" data-bs-toggle="collapse" data-bs-target="#rejectSection">
+                        <i class="fa-solid fa-ban me-1"></i> رفض السند
+                    </button>
+                </div>
+
+                <div class="collapse mt-3" id="rejectSection">
+                    <div class="card card-body border-danger bg-white">
+                        <h6 class="fw-bold text-danger mb-2">تسجيل رفض إشعار التوريد:</h6>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="reject_payment" value="1">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">سبب الرفض الموجه للمؤسسة:</label>
+                                <input type="text" name="rejection_reason" class="form-control form-control-sm" placeholder="مثال: رقم الإشعار غير مطابق لكشف الحساب البنكي" required>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold text-muted">ملاحظات تدقيق داخلية (سرية للإدارة المالية فقط):</label>
+                                <input type="text" name="internal_notes" class="form-control form-control-sm" placeholder="ملاحظة داخلية سرية لا تظهر للمؤسسة">
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-sm fw-bold">
+                                تأكيد رفض السند وإشعار المؤسسة
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

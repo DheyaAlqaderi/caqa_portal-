@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}الإعدادات العامة للنظام | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+{% include 'accounts/includes/sysadmin_nav.html' %}
+
+<div class="card card-custom p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-sliders text-primary me-2"></i> الإعدادات العامة للنظام والأمان والبريد</h3>
+            <small class="text-muted">ضبط إعدادات البوابة، خادم البريد الصادر SMTP، قيود رفع الملفات، وسياسات الجلسات والأمان</small>
+        </div>
+        <form method="POST" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="test_email">
+            <button type="submit" class="btn btn-outline-success fw-bold">
+                <i class="fa-solid fa-envelope-circle-check me-1"></i> فحص واختبار اتصال البريد (SMTP)
+            </button>
+        </form>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_settings">
+
+        <div class="row g-4">
+            <!-- General Settings -->
+            <div class="col-md-6">
+                <div class="card border p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="fa-solid fa-globe me-1"></i> 1. الإعدادات العامة للبوابة</h6>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">اسم البوابة (بالعربية):</label>
+                        <input type="text" name="portal_name_ar" value="{{ config.portal_name_ar }}" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">اسم البوابة (بالإنجليزية):</label>
+                        <input type="text" name="portal_name_en" value="{{ config.portal_name_en }}" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">البريد الرسمي للتواصل:</label>
+                            <input type="email" name="contact_email" value="{{ config.contact_email }}" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">هاتف التواصل:</label>
+                            <input type="text" name="contact_phone" value="{{ config.contact_phone }}" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">اللغة الافتراضية:</label>
+                            <select name="default_language" class="form-select form-select-sm">
+                                <option value="ar" {% if config.default_language == 'ar' %}selected{% endif %}>العربية (RTL)</option>
+                                <option value="en" {% if config.default_language == 'en' %}selected{% endif %}>English</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">المنطقة الزمنية:</label>
+                            <input type="text" name="timezone_name" value="{{ config.timezone_name }}" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">سجلات الصفحة:</label>
+                            <input type="number" name="pagination_size" value="{{ config.pagination_size }}" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Settings -->
+            <div class="col-md-6">
+                <div class="card border p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-success border-bottom pb-2 mb-3"><i class="fa-solid fa-envelope me-1"></i> 2. إعدادات خدمة البريد الإلكتروني (SMTP)</h6>
+                    <div class="row g-2 mb-2">
+                        <div class="col-8">
+                            <label class="form-label small fw-bold">خادم البريد (SMTP Host):</label>
+                            <input type="text" name="smtp_host" value="{{ config.smtp_host }}" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">المنفذ (Port):</label>
+                            <input type="number" name="smtp_port" value="{{ config.smtp_port }}" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">اسم المرسل الرسمي:</label>
+                        <input type="text" name="sender_name" value="{{ config.sender_name }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">عنوان البريد المرسل:</label>
+                        <input type="email" name="sender_email" value="{{ config.sender_email }}" class="form-control form-control-sm">
+                    </div>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="email_enabled" id="emailEnabled" {% if config.email_enabled %}checked{% endif %}>
+                        <label class="form-check-label small fw-bold" for="emailEnabled">تفعيل خدمة الإشعارات البريدية وتشفير TLS</label>
+                        <input type="hidden" name="smtp_use_tls" value="on">
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Upload Settings -->
+            <div class="col-md-6">
+                <div class="card border p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-info border-bottom pb-2 mb-3"><i class="fa-solid fa-file-shield me-1"></i> 3. سياسات رفع الملفات والوثائق</h6>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">الحد الأقصى لحجم الملف المرفوع (ميجابايت):</label>
+                        <input type="number" name="max_upload_size_mb" value="{{ config.max_upload_size_mb }}" class="form-control form-control-sm" min="1" max="100">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">الامتدادات المسموح بها (مفصولة بفاصلة):</label>
+                        <input type="text" name="allowed_extensions" value="{{ config.allowed_extensions }}" class="form-control form-control-sm font-monospace">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-bold">أنواع MIME المعتمدة:</label>
+                        <input type="text" name="allowed_mime_types" value="{{ config.allowed_mime_types }}" class="form-control form-control-sm font-monospace">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="col-md-6">
+                <div class="card border p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-danger border-bottom pb-2 mb-3"><i class="fa-solid fa-lock me-1"></i> 4. إعدادات الأمان والجلسات وقفل الحسابات</h6>
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">مهلة الجلسة (دقيقة):</label>
+                            <input type="number" name="session_timeout_minutes" value="{{ config.session_timeout_minutes }}" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">حد محاولات الدخول:</label>
+                            <input type="number" name="max_login_attempts" value="{{ config.max_login_attempts }}" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">مدة القفل (دقيقة):</label>
+                            <input type="number" name="account_lockout_minutes" value="{{ config.account_lockout_minutes }}" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" name="require_strong_password" id="strongPass" {% if config.require_strong_password %}checked{% endif %}>
+                        <label class="form-check-label small fw-bold" for="strongPass">إلزام سياسة كلمات المرور القوية (8+ خانات متنوعة)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-end mt-4">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold px-5 shadow-sm">
+                <i class="fa-solid fa-floppy-disk me-1"></i> حفظ واعتماد إعدادات النظام
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

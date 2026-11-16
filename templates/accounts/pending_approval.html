@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}حالة طلب الحساب | مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center my-5">
+    <div class="col-md-7 col-lg-6">
+        <div class="card card-custom shadow border-0 overflow-hidden text-center p-4">
+            
+            {% if user.approval_status == 'PENDING_APPROVAL' %}
+            <div class="my-4">
+                <div class="display-3 text-warning mb-3">
+                    <i class="fa-solid fa-hourglass-half fa-spin"></i>
+                </div>
+                <h3 class="fw-bold text-dark mb-2">طلبك قيد المراجعة والتدقيق الإداري</h3>
+                <p class="text-muted">مرحباً بك <strong>{{ user.get_full_name|default:user.username }}</strong>، تم استلام طلبك لاعتماد دورك كـ <span class="badge bg-primary fs-6">{{ user.get_role_requested_display|default:user.role_requested }}</span>.</p>
+            </div>
+
+            <div class="card bg-light border p-3 text-start mb-4">
+                <h6 class="fw-bold mb-2 text-dark"><i class="fa-solid fa-file-shield me-2 text-primary"></i> بيانات الطلب المسجل:</h6>
+                <ul class="list-unstyled mb-0 small text-muted">
+                    <li class="mb-1"><strong>اسم المستخدم:</strong> {{ user.username }}</li>
+                    <li class="mb-1"><strong>البريد الإلكتروني:</strong> {{ user.email }}</li>
+                    {% if user.institution %}
+                    <li class="mb-1"><strong>المؤسسة التعليمية:</strong> {{ user.institution.name }}</li>
+                    {% endif %}
+                    <li class="mb-1"><strong>تاريخ التسجيل:</strong> {{ user.date_joined|date:"Y-m-d H:i" }}</li>
+                    <li><strong>حالة الاعتماد:</strong> <span class="badge bg-warning text-dark">بانتظار موافقة مدير النظام</span></li>
+                </ul>
+            </div>
+
+            <div class="alert alert-info border small mb-4">
+                <i class="fa-solid fa-shield-halved me-1"></i>
+                حرصاً على أمن وحصانة بيانات المؤسسات والعمليات الأكاديمية، يتم التحقق والاتصال بالمؤسسة للتأكد من تفويضك قبل فتح لوحة التحكم.
+            </div>
+
+            {% elif user.approval_status == 'REJECTED' %}
+            <div class="my-4">
+                <div class="display-3 text-danger mb-3">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </div>
+                <h3 class="fw-bold text-danger mb-2">عذراً، تم رفض طلب اعتماد الحساب</h3>
+                <p class="text-muted">بعد مراجعة البيانات المقدمة من قبل إدارة النظام، تعذر اعتماد طلبك بالصفة المطلوبة.</p>
+            </div>
+
+            <div class="alert alert-danger border text-start mb-4">
+                <h6 class="fw-bold mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> سبب الرفض الإداري:</h6>
+                <p class="mb-0">{{ user.role_rejection_reason|default:"عدم استيفاء الشروط أو غياب التفويض الرسمي من المؤسسة." }}</p>
+            </div>
+
+            <div class="d-grid gap-2 mb-4">
+                <a href="{% url 'accounts:select_role' %}" class="btn btn-warning fw-bold">
+                    <i class="fa-solid fa-rotate-left me-1"></i> إعادة تقديم طلب جديد ببيانات مصححة
+                </a>
+            </div>
+
+            {% else %}
+            <div class="my-4">
+                <div class="display-3 text-success mb-3">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h3 class="fw-bold text-success mb-2">حسابك معتمد ومفعّل</h3>
+                <p class="text-muted">تم اعتماد حسابك بنجاح. يمكنك الآن الانتقال للوحة التحكم.</p>
+                <a href="{% url 'core_dashboard' %}" class="btn btn-success fw-bold px-4">
+                    الانتقال للرئيسية
+                </a>
+            </div>
+            {% endif %}
+
+            <div class="border-top pt-3 text-muted small">
+                <a href="{% url 'accounts:logout' %}" class="text-danger text-decoration-none">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i> تسجيل الخروج
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

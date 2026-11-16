@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}مركز الدعم الفني والاستفسارات{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-headset text-primary me-2"></i> مركز الدعم الفني والاستفسارات الإجرائية</h3>
+        <p class="text-muted mb-0">تقديم ومتابعة استفسارات الجامعات حول معايير ومراحل دورة الاعتماد</p>
+    </div>
+    <div>
+        <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#newTicketModal">
+            <i class="fa-solid fa-plus me-1"></i> فتح تذكرة استفسار جديدة
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card card-custom p-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>رقم التذكرة</th>
+                            <th>المؤسسة</th>
+                            <th>التصنيف</th>
+                            <th>الموضوع</th>
+                            <th>الحالة</th>
+                            <th>تاريخ التقديم</th>
+                            <th>الرد والمعالجة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td class="fw-bold font-monospace text-primary">{{ ticket.ticket_number }}</td>
+                            <td>{{ ticket.institution.name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ ticket.get_category_display }}</span></td>
+                            <td>
+                                <div class="fw-bold">{{ ticket.subject }}</div>
+                                <small class="text-muted text-truncate d-inline-block" style="max-width: 280px;">{{ ticket.message }}</small>
+                            </td>
+                            <td>
+                                {% if ticket.status == 'OPEN' %}
+                                <span class="badge bg-warning text-dark">مفتوحة</span>
+                                {% elif ticket.status == 'IN_PROGRESS' %}
+                                <span class="badge bg-info">قيد المعالجة</span>
+                                {% elif ticket.status == 'RESOLVED' %}
+                                <span class="badge bg-success">تم الحل والرد</span>
+                                {% else %}
+                                <span class="badge bg-secondary">مغلقة</span>
+                                {% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ ticket.created_at|date:"Y-m-d H:i" }}</small></td>
+                            <td>
+                                {% if ticket.response_notes %}
+                                <div class="p-2 bg-light border rounded small">
+                                    <strong class="text-success"><i class="fa-solid fa-reply me-1"></i> الرد:</strong> {{ ticket.response_notes }}
+                                </div>
+                                {% else %}
+                                <span class="text-muted small">بانتظار رد الفريق الفني</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">لا توجد تذاكر دعم فني مسجلة حالياً.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal New Ticket -->
+<div class="modal fade" id="newTicketModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-headset me-2 text-primary"></i> فتح تذكرة استفسار / دعم فني جديدة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">تصنيف الاستفسار:</label>
+                        <select name="category" class="form-select">
+                            {% for cat_val, cat_label in categories %}
+                            <option value="{{ cat_val }}">{{ cat_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">عنوان الموضوع باختصار:</label>
+                        <input type="text" name="subject" class="form-control" placeholder="مثال: استفسار حول معيار المستشفيات السريرية..." required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">اسم المؤسسة التعليمية / الجامعة المعنية:</label>
+                            <input type="text" name="target_institution_name" class="form-control" placeholder="مثال: جامعة صنعاء / كلية الطب">
+                            <small class="text-muted">مطلوب في حال تقديم بلاغ جودة أو استفسار عن برنامج محدد.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">رمز التحقق / رقم وثيقة الشهادة (إن وُجد):</label>
+                            <input type="text" name="verification_code" class="form-control font-monospace" placeholder="مثال: CAQA-CERT-2026-001">
+                            <small class="text-muted">لجهات التوظيف وأرباب العمل الراغبين في مطابقة اعتماد مؤهل.</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">تفاصيل المشكلة أو الاستفسار أو البلاغ:</label>
+                        <textarea name="message" class="form-control" rows="5" placeholder="اشرح بالتفصيل الاستفسار، أو بلاغ الجودة، أو طلب التحقق الرسمي..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-paper-plane me-1"></i> إرسال التذكرة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

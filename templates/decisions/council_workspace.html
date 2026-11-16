@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة حوكمة جلسات وقرارات المجلس{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-landmark-dome text-primary me-2"></i>
+                منصة حوكمة جلسات مجلس الإدارة والتصويت والقرارات والتكليفات
+            </h3>
+            <p class="text-muted mb-0">
+                لوحات العمل التخصصية لـ: <strong>رئيس المجلس</strong> | <strong>الأمين العام</strong> | <strong>عضو مجلس الإدارة</strong> | <strong>أمين سر الجلسات</strong>
+            </p>
+        </div>
+        <a href="{% url 'decisions:meetings_list' %}" class="btn btn-primary btn-sm fw-bold">
+            <i class="fa-solid fa-calendar-days me-1"></i> سجل جميع جلسات المجلس
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- 1. Council Chairperson Dashboard Panel -->
+        <div class="col-md-6">
+            <div class="card card-custom p-3 h-100 shadow-sm border-0">
+                <h5 class="fw-bold text-primary mb-2">
+                    <i class="fa-solid fa-crown me-1"></i> 1. لوحة رئيس مجلس الإدارة (Council Chairperson)
+                </h5>
+                <div class="small text-muted mb-2">إدارة الجلسات، التحقق من النصاب، ترجيح الكفة عند التساوي (المادة 6)، واعتماد المحاضر:</div>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>جلسات تصويت مفتوحة حالياً:</span>
+                        <span class="badge bg-warning text-dark">{{ open_ballots|length }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>تصويت متعادل بانتظار ترجيح رئيس المجلس (المادة 6):</span>
+                        <span class="badge bg-danger">{{ tie_ballots|length }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>محاضر جلسات بانتظار التوقيع والاعتماد النهائي:</span>
+                        <span class="badge bg-primary">{{ pending_minutes|length }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 2. Secretary General Dashboard Panel -->
+        <div class="col-md-6">
+            <div class="card card-custom p-3 h-100 shadow-sm border-0">
+                <h5 class="fw-bold text-success mb-2">
+                    <i class="fa-solid fa-briefcase me-1"></i> 2. لوحة الأمين العام للمجلس (Secretary General)
+                </h5>
+                <div class="small text-muted mb-2">إعداد جدول الأعمال، إحالة الملفات المكونة من 17 قسماً، ومتابعة تنفيذ قرارات وتكليفات المجلس:</div>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>إجمالي الجلسات المجدولة والمنعقدة:</span>
+                        <span class="badge bg-dark">{{ meetings|length }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>القرارات والتوصيات والتكليفات الصادرة للمتابعة:</span>
+                        <span class="badge bg-success">{{ resolutions|length }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 3. Council Member Dashboard Panel -->
+        <div class="col-md-6">
+            <div class="card card-custom p-3 h-100 shadow-sm border-0">
+                <h5 class="fw-bold text-info mb-2">
+                    <i class="fa-solid fa-user-shield me-1"></i> 3. لوحة عضو مجلس الإدارة (Council Member)
+                </h5>
+                <div class="small text-muted mb-2">تأكيد الحضور والاعتذار، الاطلاع على الملفات الكاملة للبنود، تسجيل المداخلات والتحفظات، والتصويت:</div>
+                {% for inv in my_invitations|slice:":4" %}
+                <div class="d-flex justify-content-between align-items-center border-bottom py-1 small">
+                    <a href="{% url 'decisions:meeting_detail' inv.meeting.pk %}" class="fw-bold text-decoration-none">{{ inv.meeting.meeting_number }}</a>
+                    <span class="badge bg-secondary">{{ inv.get_status_display }}</span>
+                </div>
+                {% empty %}
+                <div class="small text-muted">لا توجد دعوات شخصية مسجلة حالياً.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 4. Meeting Secretary Dashboard Panel -->
+        <div class="col-md-6">
+            <div class="card card-custom p-3 h-100 shadow-sm border-0">
+                <h5 class="fw-bold text-secondary mb-2">
+                    <i class="fa-solid fa-pen-to-square me-1"></i> 4. لوحة أمين سر الجلسات (Meeting Secretary)
+                </h5>
+                <div class="small text-muted mb-2">توجيه الدعوات، رصد الحضور والانسحاب، تدوين المداخلات والتحفظات، وإعداد إصدارات المحاضر:</div>
+                {% for m in meetings|slice:":4" %}
+                <div class="d-flex justify-content-between align-items-center border-bottom py-1 small">
+                    <a href="{% url 'decisions:meeting_detail' m.pk %}" class="fw-bold text-decoration-none">{{ m.meeting_number }} ({{ m.meeting_date }})</a>
+                    <span class="badge bg-dark">{{ m.get_status_display }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

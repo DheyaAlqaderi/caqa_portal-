@@ -1,0 +1,87 @@
+<!-- Republic of Yemen Official Golden Falcon Emblem SVG Component -->
+<svg class="yemen-emblem-svg" viewBox="0 0 200 160" width="{{ width|default:'120' }}" height="{{ height|default:'96' }}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6d365" />
+      <stop offset="50%" stop-color="#d4af37" />
+      <stop offset="100%" stop-color="#aa7c11" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f0f4f8" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Left Flag -->
+  <g transform="translate(18, 55) rotate(-22)" opacity="0.95">
+    <!-- Flag Pole -->
+    <line x1="0" y1="0" x2="60" y2="-30" stroke="#888" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M 0,0 C 15,-6 30,-2 45,-12 L 40,15 C 25,23 10,20 0,25 Z" fill="#ce1126" />
+    <path d="M 0,25 C 10,20 25,23 40,15 L 35,42 C 20,49 8,46 0,50 Z" fill="#ffffff" />
+    <path d="M 0,50 C 8,46 20,49 35,42 L 30,68 C 15,75 5,72 0,75 Z" fill="#000000" />
+  </g>
+
+  <!-- Right Flag -->
+  <g transform="translate(182, 55) scale(-1, 1) rotate(-22)" opacity="0.95">
+    <line x1="0" y1="0" x2="60" y2="-30" stroke="#888" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M 0,0 C 15,-6 30,-2 45,-12 L 40,15 C 25,23 10,20 0,25 Z" fill="#ce1126" />
+    <path d="M 0,25 C 10,20 25,23 40,15 L 35,42 C 20,49 8,46 0,50 Z" fill="#ffffff" />
+    <path d="M 0,50 C 8,46 20,49 35,42 L 30,68 C 15,75 5,72 0,75 Z" fill="#000000" />
+  </g>
+
+  <!-- Golden Falcon Body & Outspread Wings -->
+  <g id="falcon" fill="url(#goldGrad)" stroke="#8c6d1f" stroke-width="1.2" stroke-linejoin="round" filter="url(#shadow)">
+    <!-- Left Wing Feathers -->
+    <path d="M 100,50 C 85,25 60,15 35,22 C 30,23 38,38 48,46 C 36,44 26,48 24,53 C 22,57 34,66 45,71 C 32,71 22,78 21,83 C 20,88 33,93 46,96 C 36,101 32,109 35,113 C 38,116 52,112 65,106 C 75,102 85,92 100,82 Z" />
+    
+    <!-- Right Wing Feathers -->
+    <path d="M 100,50 C 115,25 140,15 165,22 C 170,23 162,38 152,46 C 164,44 174,48 176,53 C 178,57 166,66 155,71 C 168,71 178,78 179,83 C 180,88 167,93 154,96 C 164,101 168,109 165,113 C 162,116 148,112 135,106 C 125,102 115,92 100,82 Z" />
+
+    <!-- Falcon Head & Neck (Facing Right/Viewer's Left) -->
+    <path d="M 96,48 C 94,36 98,24 104,22 C 108,20 115,22 118,27 C 122,31 120,38 116,42 C 114,44 118,43 121,46 C 122,48 118,51 113,52 C 108,53 103,50 96,48 Z" />
+    <!-- Beak -->
+    <path d="M 118,27 C 124,28 128,33 125,37 C 123,38 120,36 117,35 Z" fill="#ffb703" stroke="#b07d08" stroke-width="0.8" />
+    <!-- Eye -->
+    <circle cx="111" cy="28" r="2.2" fill="#0f1e2f" stroke="#ffffff" stroke-width="0.6"/>
+
+    <!-- Tail Feathers -->
+    <path d="M 90,110 L 85,138 L 95,142 L 100,144 L 105,142 L 115,138 L 110,110 Z" />
+  </g>
+
+  <!-- Escutcheon (Chest Shield) -->
+  <g id="shield" transform="translate(76, 52)">
+    <!-- Outer Shield Frame -->
+    <path d="M 0,5 C 10,0 38,0 48,5 C 48,25 46,42 24,56 C 2,42 0,25 0,5 Z" fill="url(#shieldGrad)" stroke="url(#goldGrad)" stroke-width="3" />
+    
+    <!-- Shield Top: Golden Coffee Plant -->
+    <path d="M 24,8 Q 24,26 24,28" stroke="#148a60" stroke-width="2" fill="none"/>
+    <ellipse cx="18" cy="14" rx="4" ry="2.5" fill="#148a60" transform="rotate(-30 18 14)"/>
+    <ellipse cx="30" cy="14" rx="4" ry="2.5" fill="#148a60" transform="rotate(30 30 14)"/>
+    <circle cx="21" cy="18" r="1.8" fill="#ce1126" />
+    <circle cx="27" cy="19" r="1.8" fill="#ce1126" />
+
+    <!-- Shield Divider: Marib Dam Masonry Wall -->
+    <rect x="6" y="27" width="36" height="5" fill="#d4af37" stroke="#aa7c11" stroke-width="0.8" rx="1"/>
+    
+    <!-- Shield Bottom: Blue Water Waves (Marib Waters) -->
+    <path d="M 7,35 C 13,32 19,37 24,35 C 29,33 35,37 41,35 L 40,40 C 33,46 27,51 24,53 C 21,51 15,46 8,40 Z" fill="#24527a" />
+    <path d="M 9,38 C 14,36 19,40 24,38 C 29,36 34,40 39,38" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.8"/>
+  </g>
+
+  <!-- Scroll Banner in Talons (الجمهورية اليمنية) -->
+  <g id="banner" transform="translate(100, 142)">
+    <!-- Scroll Ribbon -->
+    <path d="M -68,-6 C -35,-12 35,-12 68,-6 C 74,-1 70,10 65,8 C 35,2 -35,2 -65,8 C -70,10 -74,-1 -68,-6 Z" 
+          fill="#fbfbf2" stroke="url(#goldGrad)" stroke-width="2" filter="url(#shadow)"/>
+    <!-- Folded Ribbon Ends -->
+    <path d="M -68,-6 L -78,2 L -65,8 Z" fill="#d4af37" stroke="#aa7c11" stroke-width="1"/>
+    <path d="M 68,-6 L 78,2 L 65,8 Z" fill="#d4af37" stroke="#aa7c11" stroke-width="1"/>
+    <!-- Calligraphy Text: الجمهورية اليمنية -->
+    <text x="0" y="2" text-anchor="middle" font-family="'Cairo', 'Traditional Arabic', serif" font-weight="900" font-size="10" fill="#0b2545" letter-spacing="0.5">
+      الجمهورية اليمنية
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ track_title }} | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">
+            {% if track_type == 'INSTITUTIONAL' %}
+            <i class="fa-solid fa-university text-success me-2"></i>
+            {% else %}
+            <i class="fa-solid fa-graduation-cap text-primary me-2"></i>
+            {% endif %}
+            {{ track_title }}
+        </h3>
+        <p class="text-muted mb-0">متابعة مسار دورة العمل والخطوات الإجرائية للحصول على الاعتماد الأكاديمي</p>
+    </div>
+    {% if not user.role == 'BOARD_MEMBER' and not user.role == 'COUNCIL_SECRETARY' and not user.role == 'EXTERNAL_REVIEWER' %}
+    {% if user.is_institution_rep or user.is_superuser or user.role == 'ADMIN' %}
+    <div>
+        <a href="{% url 'accreditation:application_create' %}?track={{ track_type }}" class="btn btn-success fw-bold shadow-sm" style="background-color: #0b6848;">
+            <i class="fa-solid fa-plus-circle me-1"></i> تقديم طلب اعتماد جديد
+        </a>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<div class="card card-custom p-4">
+    {% if applications %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>رقم الطلب</th>
+                    <th>المؤسسة التعليمية</th>
+                    {% if track_type == 'PROGRAMMATIC' %}
+                    <th>البرنامج الأكاديمي</th>
+                    {% endif %}
+                    <th>المرحلة الإجرائية (1 - 7)</th>
+                    <th>حالة الطلب</th>
+                    <th>مقدم الطلب</th>
+                    <th>تاريخ التسجيل</th>
+                    <th class="text-center">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                <tr>
+                    <td class="fw-bold font-monospace text-primary">{{ app.application_number }}</td>
+                    <td class="fw-bold">{{ app.institution.name }}</td>
+                    {% if track_type == 'PROGRAMMATIC' %}
+                    <td>
+                        <span class="badge bg-light text-primary border">
+                            <i class="fa-solid fa-book-open me-1"></i> {{ app.program.name }} ({{ app.program.get_degree_level_display }})
+                        </span>
+                    </td>
+                    {% endif %}
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-secondary me-2">المرحلة {{ app.current_stage }} من 7</span>
+                            <div class="progress flex-grow-1" style="height: 6px; width: 80px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: calc({{ app.current_stage }} * 14.28%);"></div>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">{{ app.get_current_stage_display }}</small>
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if app.status == 'FULL_ACCREDITATION' %}bg-success
+                            {% elif app.status == 'CONDITIONAL_ACCREDITATION' %}bg-warning text-dark
+                            {% elif app.status == 'DENIED' %}bg-danger
+                            {% else %}bg-info text-dark{% endif %}">
+                            {{ app.get_status_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ app.applicant_user.get_full_name|default:app.applicant_user.username }}</small></td>
+                    <td><small class="text-muted">{{ app.created_at|date:"Y-m-d" }}</small></td>
+                    <td class="text-center">
+                        <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-folder-open me-1"></i> فتح ملف الطلب
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="fa-solid fa-file-circle-question display-4 mb-3 text-secondary"></i>
+        <h5 class="fw-bold">لا توجد طلبات اعتماد مسجلة في هذا المسار حالياً.</h5>
+        <p>يمكن للمؤسسات التعليمية المعتمدة تقديم طلب جديد والخضوع لدورة التقويم الأكاديمي.</p>
+        <a href="{% url 'accreditation:application_create' %}?track={{ track_type }}" class="btn btn-success">
+            <i class="fa-solid fa-plus me-1"></i> البدء بتقديم طلب جديد
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}سجل التظلمات والطعون القانونية | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4">
+    <div class="col-md-7">
+        <h3 class="fw-bold text-dark mb-1">
+            <i class="fa-solid fa-scale-unbalanced-flip text-danger me-2"></i> سجل التظلمات والطعون القانونية
+        </h3>
+        <p class="text-muted mb-0">
+            الجدول الرسمي لقيد وفحص التظلمات المقدمة من المؤسسات التعليمية، والمطالعة القانونية وقرارات مجلس الإدارة
+        </p>
+    </div>
+    <div class="col-md-5 text-md-end mt-3 mt-md-0">
+        <a href="{% url 'core_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة للرئيسية
+        </a>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 border-start border-4 border-primary">
+            <div class="text-muted small fw-bold">إجمالي التظلمات المسجلة</div>
+            <div class="fs-2 fw-black text-dark">{{ total_count }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 border-start border-4 border-warning">
+            <div class="text-muted small fw-bold">جديدة بانتظار الفحص</div>
+            <div class="fs-2 fw-black text-warning">{{ submitted_count }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 border-start border-4 border-info">
+            <div class="text-muted small fw-bold">قيد دراسة لجنة التظلمات</div>
+            <div class="fs-2 fw-black text-info">{{ under_review_count }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 border-start border-4 border-success">
+            <div class="text-muted small fw-bold">مفصول فيها بقرار المجلس</div>
+            <div class="fs-2 fw-black text-success">{{ resolved_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="card card-custom p-3 mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="fw-bold text-muted small me-2"><i class="fa-solid fa-filter me-1"></i> تصفية الحالات:</span>
+        <a href="{% url 'accreditation:grievances_list' %}" class="btn btn-sm {% if not current_status %}btn-dark{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+            الكل ({{ total_count }})
+        </a>
+        <a href="{% url 'accreditation:grievances_list' %}?status=SUBMITTED" class="btn btn-sm {% if current_status == 'SUBMITTED' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %} rounded-pill px-3">
+            جديدة ({{ submitted_count }})
+        </a>
+        <a href="{% url 'accreditation:grievances_list' %}?status=UNDER_COMMITTEE_REVIEW" class="btn btn-sm {% if current_status == 'UNDER_COMMITTEE_REVIEW' %}btn-info text-white{% else %}btn-outline-info{% endif %} rounded-pill px-3">
+            قيد الدراسة بلجنة التظلمات ({{ under_review_count }})
+        </a>
+        <a href="{% url 'accreditation:grievances_list' %}?status=ACCEPTED_RECONSIDERATION" class="btn btn-sm {% if current_status == 'ACCEPTED_RECONSIDERATION' %}btn-success{% else %}btn-outline-success{% endif %} rounded-pill px-3">
+            مقبولة لإعادة المداولة
+        </a>
+        <a href="{% url 'accreditation:grievances_list' %}?status=REJECTED_DECISION_UPHELD" class="btn btn-sm {% if current_status == 'REJECTED_DECISION_UPHELD' %}btn-danger{% else %}btn-outline-danger{% endif %} rounded-pill px-3">
+            مرفوضة مع تأييد القرار
+        </a>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card card-custom shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="py-3 px-3">رقم التظلم</th>
+                    <th class="py-3">المؤسسة / البرنامج</th>
+                    <th class="py-3">تاريخ القيد</th>
+                    <th class="py-3">ملخص الأسباب والحيثيات</th>
+                    <th class="py-3">الحالة القانونية</th>
+                    <th class="py-3 text-center">الإجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grv in grievances %}
+                <tr>
+                    <td class="px-3 fw-bold text-dark font-monospace">
+                        {{ grv.appeal_number }}
+                    </td>
+                    <td>
+                        <div class="fw-bold text-dark">{{ grv.application.institution.name }}</div>
+                        <small class="text-muted">
+                            {% if grv.application.program %}
+                            برنامج: {{ grv.application.program.name }}
+                            {% else %}
+                            اعتماد مؤسسي
+                            {% endif %}
+                            ({{ grv.application.application_number }})
+                        </small>
+                    </td>
+                    <td class="small text-muted font-monospace">
+                        {{ grv.submission_date|date:"Y-m-d H:i" }}
+                    </td>
+                    <td style="max-width: 320px;">
+                        <div class="text-truncate small text-secondary" title="{{ grv.grounds_of_appeal }}">
+                            {{ grv.grounds_of_appeal }}
+                        </div>
+                        {% if grv.supporting_document %}
+                        <a href="{{ grv.supporting_document.url }}" target="_blank" class="badge bg-light text-primary border text-decoration-none mt-1">
+                            <i class="fa-solid fa-paperclip me-1"></i> وثيقة مؤيدة مرفقة
+                        </a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if grv.status == 'SUBMITTED' %}bg-warning text-dark{% elif grv.status == 'UNDER_COMMITTEE_REVIEW' %}bg-info text-white{% elif grv.status == 'ACCEPTED_RECONSIDERATION' %}bg-success{% else %}bg-danger{% endif %} px-2 py-1">
+                            {{ grv.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url 'accreditation:grievance_review' grv.pk %}" class="btn btn-sm btn-primary fw-bold px-3">
+                            <i class="fa-solid fa-gavel me-1"></i> فحص ونظر التظلم
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-folder-open fs-1 d-block mb-3 text-secondary opacity-50"></i>
+                        لا توجد تظلمات أو طعون مسجلة تطابق التصفية الحالية.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

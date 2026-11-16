@@ -1,0 +1,661 @@
+{% extends 'base.html' %}
+
+{% block title %}طلب اعتماد {{ app.application_number }} | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<!-- Top Header Card -->
+<div class="card card-custom p-4 mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge font-monospace fs-6 px-3 py-2 me-2 {% if app.is_institutional %}badge-track-inst{% else %}badge-track-prog{% endif %}">
+                    {{ app.application_number }}
+                </span>
+                <span class="badge bg-light text-dark border px-3 py-2 me-2">
+                    {% if app.is_institutional %}
+                    <i class="fa-solid fa-university text-success me-1"></i> مسار الاعتماد المؤسسي
+                    {% else %}
+                    <i class="fa-solid fa-graduation-cap text-primary me-1"></i> مسار الاعتماد البرامجي
+                    {% endif %}
+                </span>
+                <span class="badge 
+                    {% if app.status == 'FULL_ACCREDITATION' %}bg-success
+                    {% elif app.status == 'CONDITIONAL_ACCREDITATION' %}bg-warning text-dark
+                    {% elif app.status == 'DENIED' %}bg-danger
+                    {% else %}bg-info text-dark{% endif %} px-3 py-2">
+                    {{ app.get_status_display }}
+                </span>
+            </div>
+            
+            <h3 class="fw-bold text-dark mb-1">
+                {{ app.institution.name }}
+                {% if app.program %}
+                <span class="text-primary">- {{ app.program.name }} ({{ app.program.get_degree_level_display }})</span>
+                {% endif %}
+            </h3>
+            
+            <div class="text-muted small mt-2">
+                <span class="me-3"><i class="fa-solid fa-location-dot text-danger me-1"></i> {{ app.institution.governorate }}</span>
+                <span class="me-3"><i class="fa-solid fa-calendar me-1"></i> العام الأكاديمي: {{ app.academic_year }}</span>
+                <span class="me-3"><i class="fa-solid fa-user-tie me-1"></i> مقدم الطلب: {{ app.applicant_user.get_full_name|default:app.applicant_user.username }}</span>
+                <span><i class="fa-solid fa-clock me-1"></i> تاريخ الإنشاء: {{ app.created_at|date:"Y-m-d" }}</span>
+            </div>
+        </div>
+
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+                <a href="{% url 'accounts:library_save_system_asset' %}?asset_type=application&app_id={{ app.pk }}" class="btn btn-sm btn-outline-warning text-dark fw-bold" title="حفظ وتثبيت استمارة الطلب في مكتبتي الخاصة">
+                    <i class="fa-solid fa-bookmark me-1 text-warning"></i> حفظ في مكتبتي
+                </a>
+                <a href="{% url 'accreditation:application_report' app.pk %}" target="_blank" class="btn btn-sm btn-outline-success fw-bold">
+                    <i class="fa-solid fa-file-invoice me-1"></i> تقرير الطلب الرسمي (Dossier)
+                </a>
+                <a href="{% url 'accreditation:ai_quality_analyzer' app.pk %}" class="btn btn-sm btn-dark fw-bold">
+                    <i class="fa-solid fa-wand-magic-sparkles text-warning me-1"></i> المساعد الذكي لتحليل الفجوات (AI)
+                </a>
+                {% if is_council or is_board or request.user.is_staff or user.role == 'DG_ACCREDITATION' %}
+                <a href="{% url 'accreditation:board_application_review' app.pk %}" class="btn btn-sm btn-primary">
+                    <i class="fa-solid fa-gavel me-1"></i> جلسة مراجعة المجلس
+                </a>
+                <a href="{% url 'accreditation:secretariat_comparison_dashboard' app.pk %}" class="btn btn-sm btn-outline-info">
+                    <i class="fa-solid fa-code-compare me-1"></i> لوحة المقارنة التحليلية
+                </a>
+                {% endif %}
+                <a href="{% url 'accreditation:application_timeline' app.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> الخط الزمني وسير العمل
+                </a>
+                {% if user.role == 'UNIVERSITY_PRESIDENT' or user.is_university_president or is_institution_rep or request.user.is_superuser %}
+                    {% if not app.president_endorsed %}
+                    <button type="button" class="btn btn-sm btn-success fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#presidentEndorseModal">
+                        <i class="fa-solid fa-file-signature me-1"></i> اعتماد وتفويض رئيس الجامعة
+                    </button>
+                    {% else %}
+                    <span class="badge bg-success py-2 px-3"><i class="fa-solid fa-circle-check me-1"></i> معتمد وموقع من رئيس الجامعة</span>
+                    {% endif %}
+                {% endif %}
+                {% if is_institution_rep and app.status in 'DENIED,CONDITIONAL_ACCREDITATION,DESK_DEFICIENCY' %}
+                <a href="{% url 'accreditation:grievance_create' app.pk %}" class="btn btn-sm btn-outline-danger">
+                    <i class="fa-solid fa-scale-unbalanced-flip me-1"></i> قيد تظلم رسمي
+                </a>
+                {% endif %}
+                {% if app.grievances.exists and is_council or is_board or user.is_staff or user.role == 'LEGAL_DIRECTOR' %}
+                    {% for grv in app.grievances.all %}
+                    <a href="{% url 'accreditation:grievance_review' grv.pk %}" class="btn btn-sm btn-outline-info">
+                        <i class="fa-solid fa-gavel me-1"></i> فحص التظلم ({{ grv.appeal_number }})
+                    </a>
+                    {% endfor %}
+                {% endif %}
+                {% if is_reviewer and not reviewer_coi %}
+                <a href="{% url 'accreditation:coi_declare' app.pk %}" class="btn btn-sm btn-warning fw-bold text-dark">
+                    <i class="fa-solid fa-hand-holding-heart me-1"></i> توقيع إقرار النزاهة
+                </a>
+                {% endif %}
+                {% if council_decision and council_decision.certificate %}
+                <a href="{% url 'decisions:certificate_detail' council_decision.certificate.pk %}" class="btn btn-warning fw-bold text-dark shadow-sm">
+                    <i class="fa-solid fa-award me-1"></i> استعراض شهادة الاعتماد (QR)
+                </a>
+                {% elif is_board %}
+                <a href="{% url 'decisions:issue_decision' app.pk %}" class="btn btn-danger fw-bold shadow-sm">
+                    <i class="fa-solid fa-gavel me-1"></i> جلسة قرار المجلس
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if app.president_endorsed %}
+<div class="alert alert-success d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 shadow-sm border-0" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+    <div class="d-flex align-items-center">
+        <div class="bg-success text-white p-3 rounded-circle me-3 fs-4 shadow-sm">
+            <i class="fa-solid fa-stamp"></i>
+        </div>
+        <div>
+            <h6 class="fw-bold text-success mb-1">معتمد وموقع رسمياً من رئيس الجامعة / المفوض الأعلى للمؤسسة</h6>
+            <div class="small text-muted">
+                المعتمد: <strong>{{ app.president_endorsed_by.get_full_name|default:app.president_endorsed_by.username }}</strong> • 
+                تاريخ الاعتماد: <strong>{{ app.president_endorsed_at|date:"Y-m-d H:i" }}</strong> • 
+                قرار التفويض الرئاسي: <strong>{{ app.president_decree_ref|default:"اعتماد رئاسي مباشر" }}</strong>
+            </div>
+        </div>
+    </div>
+    <span class="badge bg-success fs-6 px-3 py-2 shadow-sm"><i class="fa-solid fa-check-double me-1"></i> مستوفٍ للتفويض الرئاسي</span>
+</div>
+{% else %}
+<div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 shadow-sm border-0" style="background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);">
+    <div class="d-flex align-items-center">
+        <div class="bg-warning text-dark p-3 rounded-circle me-3 fs-4 shadow-sm">
+            <i class="fa-solid fa-signature"></i>
+        </div>
+        <div>
+            <h6 class="fw-bold text-dark mb-1">تقرير طلب الاعتماد بانتظار توقيع واعتماد رئيس الجامعة / المفوض القانوني</h6>
+            <div class="small text-muted">
+                يلزم توقيع رئيس الجامعة لاعتماد تقرير الطلب رسمياً وإحالته للموافقة وتحديد التكلفة لدى مدير عام الاعتماد بالأمانة العامة.
+            </div>
+        </div>
+    </div>
+    {% if user.role == 'UNIVERSITY_PRESIDENT' or user.is_university_president or is_institution_rep or request.user.is_superuser %}
+    <button type="button" class="btn btn-success fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#presidentEndorseModal">
+        <i class="fa-solid fa-file-signature me-1"></i> توقيع واعتماد رئيس الجامعة الآن
+    </button>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Contextual Role & Stage Guidance Card -->
+{% include 'includes/contextual_guidance_card.html' %}
+
+<!-- Council Decisions & Intake Banners -->
+{% if app.status == 'DRAFT' %}
+<div class="card card-custom p-4 mb-4 border-start border-4 border-secondary bg-light">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-pencil text-secondary me-2"></i> هذا الطلب محفوظ كمسودة جامعية مؤقتة</h5>
+            <p class="text-muted small mb-0">يمكنك مراجعة كافة المرفقات والبيانات قبل إرسال الطلب رسمياً إلى مجلس الاعتماد الأكاديمي لبدء إجراءات المراجعة وتحديد التكلفة.</p>
+        </div>
+        {% if not user.role == 'BOARD_MEMBER' and not user.role == 'COUNCIL_SECRETARY' and not user.role == 'EXTERNAL_REVIEWER' %}
+        {% if is_institution_rep or user.is_superuser or user.role == 'ADMIN' %}
+        <form method="POST" action="{% url 'accreditation:application_submit_draft' app.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success fw-bold px-4" onclick="return confirm('هل أنت متأكد من تسليم الطلب رسمياً لمجلس الاعتماد؟');">
+                <i class="fa-solid fa-paper-plane me-1"></i> تسليم الطلب رسمياً للمجلس
+            </button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% elif app.status == 'PENDING_REVIEW' %}
+<div class="card card-custom p-4 mb-4 border-start border-4 border-warning bg-warning bg-opacity-10">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h5 class="fw-bold text-warning mb-1"><i class="fa-solid fa-hourglass-half me-2"></i> الطلب قيد دراسة ومراجعة أمانة المجلس الموقر</h5>
+            <p class="text-muted small mb-0">تم استلام طلبكم رسمياً وتجري دراسته للتحقق من شروط القبول المبدئي وتحديد الرسوم والتكلفة المالية للاعتماد.</p>
+        </div>
+        {% if is_council or is_board or request.user.is_staff %}
+        <a href="{% url 'accreditation:board_application_review' app.pk %}" class="btn btn-primary fw-bold">
+            <i class="fa-solid fa-gavel me-1"></i> دراسة واتخاذ قرار المجلس
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% elif app.status == 'ACCEPTED_PENDING_SELF_EVALUATION' or app.status == 'APPROVED_FOR_SELF_STUDY' or app.status == 'SELF_EVALUATION_IN_PROGRESS' %}
+<div id="approved-paths" class="card card-custom p-4 mb-4 border-start border-4 border-success bg-success bg-opacity-10 shadow-sm">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div>
+            <h5 class="fw-bold text-success mb-1"><i class="fa-solid fa-circle-check me-2"></i> قرار القبول المبدئي + تحديد التكلفة المالية + فتح التقييم الذاتي</h5>
+            <p class="text-muted small mb-1">
+                التكلفة المعتمدة لدراسة الاعتماد: <span class="fw-bold text-success fs-5">{{ app.cost_amount|floatformat:2 }} {{ app.cost_currency }}</span>
+                {% if app.council_approval_notes %} | توجيهات مدير عام الاعتماد: <strong>{{ app.council_approval_notes }}</strong>{% endif %}
+            </p>
+            <p class="text-dark small mb-0">يرجى الانتقال مباشرة عبر المسارين التاليين لاستكمال إجراءات التسديد المالي وإعداد دراسة التقييم الذاتي:</p>
+        </div>
+        <a href="{% url 'accreditation:self_study_report_view' app.pk %}" class="btn btn-sm btn-outline-success fw-bold">
+            <i class="fa-solid fa-eye me-1"></i> استعراض تقرير التقييم الذاتي
+        </a>
+    </div>
+
+    <!-- Two Direct Action Paths: Path 1 (Payment) & Path 2 (Self-Study Preparation) -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="p-3 bg-white rounded border border-primary h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <span class="badge bg-primary mb-2">المسار الأول: التسديد المالي</span>
+                    <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-file-invoice-dollar text-primary me-1"></i> سداد رسوم الاعتماد ورفع حافظة التوريد</h6>
+                    <p class="text-muted small mb-2">
+                        {% if latest_invoice %}
+                        رقم الفاتورة: <strong class="font-monospace">{{ latest_invoice.invoice_number }}</strong> — الحالة: <span class="badge {% if latest_invoice.status == 'PAID' %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ latest_invoice.get_status_display }}</span>
+                        {% else %}
+                        استعراض الفاتورة المالية المعتمدة وسداد رسوم دراسة الاعتماد.
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    {% if latest_invoice %}
+                    <a href="{% url 'operations:invoice_detail' latest_invoice.pk %}" class="btn btn-primary fw-bold w-100 shadow-sm">
+                        <i class="fa-solid fa-credit-card me-1"></i> الانتقال المباشر إلى التسديد المالي للفاتورة
+                    </a>
+                    {% else %}
+                    <a href="{% url 'operations:invoices_list' %}" class="btn btn-primary fw-bold w-100 shadow-sm">
+                        <i class="fa-solid fa-credit-card me-1"></i> الانتقال المباشر إلى صفحة الفواتير والتسديد
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="p-3 bg-white rounded border border-success h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <span class="badge bg-success mb-2">المسار الثاني: إعداد التقييم الذاتي</span>
+                    <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-file-pen text-success me-1"></i> إعداد وتعبئة دراسة التقييم الذاتي (SSR) والشواهد</h6>
+                    <p class="text-muted small mb-2">تعبئة المؤشرات المعيارية والملخص التنفيذي ورفع وثائق الشواهد وإرسال التقييم الذاتي إلى مدير عام الاعتماد.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'accreditation:self_study_indicators_edit' app.pk %}" class="btn btn-success fw-bold flex-grow-1 shadow-sm">
+                        <i class="fa-solid fa-list-check me-1"></i> إعداد التقييم الذاتي (المؤشرات)
+                    </a>
+                    <a href="{% url 'accreditation:self_study_edit' app.pk %}" class="btn btn-outline-success fw-bold">
+                        <i class="fa-solid fa-file-lines me-1"></i> البيانات العامة
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% elif app.status == 'REJECTED' or app.status == 'RETURNED_FOR_MODIFICATION' %}
+<div id="resubmit-section" class="card card-custom p-4 mb-4 border-start border-4 border-danger bg-danger bg-opacity-10">
+    <h5 class="fw-bold text-danger mb-2"><i class="fa-solid fa-circle-xmark me-2"></i> إشعار وتقرير التعديل وإعادة التقديم (قرار مدير عام الاعتماد)</h5>
+    <div class="p-3 bg-white border border-danger rounded mb-2">
+        <strong class="text-danger d-block mb-1">الأسباب والملاحظات المطلوبة لتعديل تقرير الطلب:</strong>
+        <div class="text-dark">{{ app.rejection_reason|linebreaks }}</div>
+    </div>
+    {% if app.reviewed_at %}
+    <small class="text-muted">تاريخ صدور التقرير: {{ app.reviewed_at|date:"Y-m-d H:i" }} | المراجع: {{ app.reviewed_by.get_full_name|default:app.reviewed_by.username }}</small>
+    {% endif %}
+    {% if is_institution_rep or user.role == 'UNIVERSITY_PRESIDENT' or request.user.is_superuser or user.role == 'ADMIN' %}
+    <div class="mt-3 pt-2 border-top border-danger d-flex gap-2 flex-wrap">
+        <a href="{% url 'accreditation:application_resubmit' app.pk %}" class="btn btn-danger fw-bold shadow-sm">
+            <i class="fa-solid fa-file-pen me-1"></i> الانتقال المباشر لتعديل تقرير الطلب وإعادة إرساله لمدير عام الاعتماد
+        </a>
+        <a href="{% url 'accreditation:application_report' app.pk %}#resubmit-section" class="btn btn-outline-danger fw-bold">
+            <i class="fa-solid fa-file-invoice me-1"></i> استعراض تقرير الطلب والتعديل
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- 7-Stage Interactive Stepper -->
+<div class="card card-custom p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0 text-muted"><i class="fa-solid fa-route me-1 text-primary"></i> تقدم الطلب عبر دورة العمل الإجرائية (7 مراحل):</h6>
+        <span class="badge bg-success">المرحلة الحالية: {{ app.current_stage }} من 7</span>
+    </div>
+
+    <div class="stage-stepper">
+        <!-- Stage 1 -->
+        <div class="step-item {% if app.current_stage > 1 %}completed{% elif app.current_stage == 1 %}active{% endif %}">
+            <div class="step-circle">{% if app.current_stage > 1 %}<i class="fa-solid fa-check"></i>{% else %}1{% endif %}</div>
+            <span class="step-label">1. الدراسة الذاتية والشواهد</span>
+        </div>
+        <!-- Stage 2 -->
+        <div class="step-item {% if app.current_stage > 2 %}completed{% elif app.current_stage == 2 %}active{% endif %}">
+            <div class="step-circle">{% if app.current_stage > 2 %}<i class="fa-solid fa-check"></i>{% else %}2{% endif %}</div>
+            <span class="step-label">2. الفحص المكتبي الأولي</span>
+        </div>
+        <!-- Stage 3 -->
+        <div class="step-item {% if app.current_stage > 3 %}completed{% elif app.current_stage == 3 %}active{% endif %}">
+            <div class="step-circle">{% if app.current_stage > 3 %}<i class="fa-solid fa-check"></i>{% else %}3{% endif %}</div>
+            <span class="step-label">3. تشكيل لجان المراجعة</span>
+        </div>
+        <!-- Stage 4 -->
+        <div class="step-item {% if app.current_stage > 4 %}completed{% elif app.current_stage == 4 %}active{% endif %}">
+            <div class="step-circle">{% if app.current_stage > 4 %}<i class="fa-solid fa-check"></i>{% else %}4{% endif %}</div>
+            <span class="step-label">4. الزيارة الميدانية</span>
+        </div>
+        <!-- Stage 5 -->
+        <div class="step-item {% if app.current_stage > 5 %}completed{% elif app.current_stage == 5 %}active{% endif %}">
+            <div class="step-circle">{% if app.current_stage > 5 %}<i class="fa-solid fa-check"></i>{% else %}5{% endif %}</div>
+            <span class="step-label">5. التقرير وحق الرد</span>
+        </div>
+        <!-- Stage 6 -->
+        <div class="step-item {% if app.current_stage > 6 %}completed{% elif app.current_stage == 6 %}active{% endif %}">
+            <div class="step-circle">{% if app.current_stage > 6 %}<i class="fa-solid fa-check"></i>{% else %}6{% endif %}</div>
+            <span class="step-label">6. قرار الاعتماد والشهادة</span>
+        </div>
+        <!-- Stage 7 -->
+        <div class="step-item {% if app.current_stage == 7 %}active{% endif %}">
+            <div class="step-circle">{% if app.status == 'FULL_ACCREDITATION' %}<i class="fa-solid fa-star"></i>{% else %}7{% endif %}</div>
+            <span class="step-label">7. المتابعة والتحسين</span>
+        </div>
+    </div>
+</div>
+
+<!-- Stages Details (Accordion / Cards) -->
+<div class="row g-4">
+    <!-- Left Column: Stages 1 to 3 -->
+    <div class="col-lg-6">
+        
+        <!-- Stage 1 Card: Self Study & Evidences -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-success">
+                    <i class="fa-solid fa-file-pen me-2"></i> المرحلة 1: التهيئة والدراسة الذاتية ورفع الأدلة
+                </h5>
+                {% if ssr.is_locked %}
+                <span class="badge bg-success"><i class="fa-solid fa-lock me-1"></i> تم التسليم رسمياً</span>
+                {% else %}
+                <span class="badge bg-warning text-dark"><i class="fa-solid fa-pen me-1"></i> قيد الإعداد للمؤسسة</span>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">إعداد تقرير التقييم الذاتي (SSR) من قبل اللجان الداخلية للمؤسسة ورفع بنك الشواهد والأدلة الثبوتية.</p>
+
+            <div class="bg-light p-3 rounded mb-3">
+                <div class="small fw-bold text-dark mb-1">اللجنة الداخلية لإعداد الدراسة الذاتية:</div>
+                <div class="small text-muted mb-2">{{ ssr.internal_committee_names }}</div>
+                
+                <div class="small fw-bold text-dark mb-1">الملخص التنفيذي للدراسة:</div>
+                <div class="small text-muted">{{ ssr.executive_summary|truncatewords:25 }}</div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-primary fs-6"><i class="fa-solid fa-paperclip me-1"></i> {{ evidences_count }} وثيقة شاهد مرفوعة</span>
+                </div>
+                <div class="d-flex flex-wrap gap-1">
+                    <a href="{% url 'accreditation:evidence_manage' app.pk %}" class="btn btn-sm btn-outline-primary">
+                        {% if is_institution %}<i class="fa-solid fa-folder-plus me-1"></i> بنك الشواهد{% else %}<i class="fa-solid fa-folder-open me-1"></i> بنك الشواهد{% endif %}
+                    </a>
+                    {% if not user.role == 'BOARD_MEMBER' and not user.role == 'COUNCIL_SECRETARY' and not user.role == 'EXTERNAL_REVIEWER' %}
+                    {% if is_institution_rep or user.is_superuser or user.role == 'ADMIN' %}
+                    {% if app.can_start_self_study or user.is_superuser %}
+                    <a href="{% url 'accreditation:self_study_indicators_edit' app.pk %}" class="btn btn-sm btn-success">
+                        <i class="fa-solid fa-list-check me-1"></i> استمارة المؤشرات
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                    {% endif %}
+                    <a href="{% url 'accreditation:self_study_report_view' app.pk %}" class="btn btn-sm btn-outline-success">
+                        <i class="fa-solid fa-file-contract me-1"></i> التقرير الشامل
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 2 Card: Desk Review -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-primary">
+                    <i class="fa-solid fa-clipboard-check me-2"></i> المرحلة 2: الفحص المكتبي واستيفاء الشروط
+                </h5>
+                {% if desk_review and desk_review.is_completed %}
+                <span class="badge 
+                    {% if desk_review.decision == 'ACCEPTED' %}bg-success
+                    {% elif desk_review.decision == 'NEEDS_COMPLETION' %}bg-warning text-dark
+                    {% else %}bg-danger{% endif %}">
+                    {{ desk_review.get_decision_display }}
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">بانتظار الفحص الفني لأمانة المجلس</span>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">دراسة التقرير والوثائق المرفقة بواسطة الفريق الفني للمجلس للتحقق من شروط الأهلية والحد الأدنى المعياري.</p>
+
+            {% if desk_review %}
+            <div class="bg-light p-3 rounded mb-3">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="small fw-bold">نسبة اكتمال الوثائق والأدلة:</span>
+                    <span class="badge bg-primary">{{ desk_review.completeness_percentage }}%</span>
+                </div>
+                {% if desk_review.deficiencies_requested %}
+                <div class="small fw-bold text-danger mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> قائمة النواقص المطلوب استكمالها:</div>
+                <div class="small text-danger bg-white p-2 border rounded mb-2">{{ desk_review.deficiencies_requested|linebreaksbr }}</div>
+                {% endif %}
+                <div class="small fw-bold text-dark mb-1">الملاحظات الفنية للمجلس:</div>
+                <div class="small text-muted">{{ desk_review.technical_remarks|default:'لا توجد ملاحظات إضافية' }}</div>
+            </div>
+            {% endif %}
+
+            <div class="text-end">
+                {% if is_council %}
+                <a href="{% url 'accreditation:desk_review_process' app.pk %}" class="btn btn-sm btn-primary">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> إجراء / اعتماد الفحص المكتبي (خاص بالأمانة)
+                </a>
+                {% elif is_institution and desk_review and desk_review.decision == 'NEEDS_COMPLETION' %}
+                <a href="{% url 'accreditation:evidence_manage' app.pk %}" class="btn btn-sm btn-warning fw-bold text-dark">
+                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> استكمال ورفع النواقص المطلوبة
+                </a>
+                {% else %}
+                <span class="small text-muted"><i class="fa-solid fa-lock me-1"></i> الفحص المكتبي مسؤولية أمانة المجلس الفنية</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Stage 3 Card: Review Panel Formation -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-info">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-info">
+                    <i class="fa-solid fa-users-gear me-2"></i> المرحلة 3: تشكيل لجان المراجعة والتقييم الخارجي
+                </h5>
+                {% if review_team %}
+                <span class="badge bg-info text-dark"><i class="fa-solid fa-check me-1"></i> تم تشكيل اللجنة</span>
+                {% else %}
+                <span class="badge bg-secondary">قيد الترشيح</span>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">اختيار فريق من الخبراء والمحكمين الأكاديميين المستقلين في ضمان الجودة والتخصص الدقيق للبرنامج.</p>
+
+            {% if review_team %}
+            <div class="bg-light p-3 rounded mb-3">
+                <div class="small fw-bold text-dark mb-1"><i class="fa-solid fa-scroll me-1 text-primary"></i> القرار: {{ review_team.decree_number }}</div>
+                <div class="small text-muted mb-2"><i class="fa-solid fa-user-tie me-1"></i> رئيس الفريق: <strong>{{ review_team.chairperson.get_full_name|default:review_team.chairperson.username }}</strong></div>
+                <div class="small text-muted">تاريخ التشكيل الرسمي: {{ review_team.formation_date }}</div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center">
+                {% if is_reviewer %}
+                <a href="{% url 'accreditation:external_rubrics_evaluation' app.pk %}" class="btn btn-sm btn-success">
+                    <i class="fa-solid fa-table-list me-1"></i> تعبئة استمارة التقييم (Rubrics للمحكمين)
+                </a>
+                {% endif %}
+
+                {% if is_council %}
+                <a href="{% url 'accreditation:assign_review_team' app.pk %}" class="btn btn-sm btn-outline-info">
+                    <i class="fa-solid fa-user-plus me-1"></i> تشكيل وتكليف أعضاء اللجنة (خاص بالأمانة)
+                </a>
+                {% endif %}
+
+                {% if is_institution %}
+                <span class="small text-muted"><i class="fa-solid fa-shield-halved text-success me-1"></i> اللجنة مشكلة ومستقلة بإقرار عدم تعارض المصالح</span>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Right Column: Stages 4 to 7 -->
+    <div class="col-lg-6">
+
+        <!-- Stage 4 Card: Site Visit -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="fa-solid fa-building-circle-check text-warning me-2"></i> المرحلة 4: الزيارة الميدانية (Site Visit)
+                </h5>
+                {% if site_visit %}
+                <span class="badge bg-warning text-dark">{{ site_visit.get_status_display }}</span>
+                {% else %}
+                <span class="badge bg-secondary">غير مجدولة بعد</span>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">المعاينة على أرض الواقع للمباني والمعامل، وإجراء مقابلات مع الطلاب والكوادر وأرباب العمل، وتدقيق الاختبارات.</p>
+
+            {% if site_visit %}
+            <div class="bg-light p-3 rounded mb-3">
+                <div class="row g-2 text-center mb-2">
+                    <div class="col-4">
+                        <div class="p-2 bg-white rounded border">
+                            <small class="d-block text-muted">المرافق والمعامل</small>
+                            <span class="fw-bold text-success">{{ site_visit.facility_inspections.count }}</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-white rounded border">
+                            <small class="d-block text-muted">المقابلات</small>
+                            <span class="fw-bold text-primary">{{ site_visit.interviews.count }}</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-white rounded border">
+                            <small class="d-block text-muted">تدقيق أكاديمي</small>
+                            <span class="fw-bold text-warning">{{ site_visit.academic_audits.count }}</span>
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted d-block"><i class="fa-solid fa-calendar-days me-1"></i> الفترة: من {{ site_visit.start_date }} إلى {{ site_visit.end_date }}</small>
+            </div>
+            {% endif %}
+
+            <div class="text-end">
+                <a href="{% url 'site_visits:console' app.pk %}" class="btn btn-sm btn-warning fw-bold text-dark">
+                    {% if is_reviewer or is_council %}
+                    <i class="fa-solid fa-door-open me-1"></i> إدارة الزيارة الميدانية وتوثيق المعاينات
+                    {% else %}
+                    <i class="fa-solid fa-calendar-days me-1"></i> الاطلاع على برنامج وجدول الزيارة
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- Stage 5 Card: External Review Report & Right to Reply -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-secondary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-secondary">
+                    <i class="fa-solid fa-scale-balanced me-2"></i> المرحلة 5: مسودة التقرير، حق الرد، والتقرير النهائي
+                </h5>
+                {% if external_report and external_report.final_submitted_to_council_date %}
+                <span class="badge bg-success">تم رفع التقرير النهائي للمجلس</span>
+                {% elif external_report and external_report.draft_sent_to_institution_date %}
+                <span class="badge bg-warning text-dark">بانتظار رد المؤسسة (حق الرد)</span>
+                {% else %}
+                <span class="badge bg-secondary">قيد الصياغة</span>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">إعداد مسودة التقرير التفصيلي، إتاحته للمؤسسة لإبداء ملاحظاتها وحق الرد، ثم اعتماد الصيغة النهائية.</p>
+
+            {% if external_report %}
+            <div class="bg-light p-3 rounded mb-3">
+                <div class="small fw-bold text-dark mb-1">توصية فريق التقييم الختامية:</div>
+                <span class="badge bg-primary p-2 mb-2 d-inline-block">{{ external_report.get_final_recommendation_display }}</span>
+                {% if external_report.institution_reply_text %}
+                <div class="small fw-bold text-muted mt-2"><i class="fa-solid fa-reply me-1"></i> تم تسجيل رد المؤسسة القانوني بتاريخ: {{ external_report.institution_reply_date|date:"Y-m-d" }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="text-end">
+                <a href="{% url 'accreditation:external_report_manage' app.pk %}" class="btn btn-sm btn-outline-secondary">
+                    {% if is_institution and external_report and external_report.draft_sent_to_institution_date %}
+                    <i class="fa-solid fa-reply me-1 text-warning"></i> ممارسة حق الرد للمؤسسة وتوضيح الملاحظات
+                    {% elif is_reviewer %}
+                    <i class="fa-solid fa-file-contract me-1"></i> صياغة مسودة التقرير / التقرير النهائي
+                    {% else %}
+                    <i class="fa-solid fa-eye me-1"></i> استعراض تقرير المراجعة والردود
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+
+        <!-- Stage 6 & 7 Card: Council Decision & Continuous Surveillance -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-danger">
+                    <i class="fa-solid fa-stamp me-2"></i> المرحلة 6 و 7: قرار الاعتماد والمتابعة الدورية
+                </h5>
+                {% if council_decision %}
+                <span class="badge bg-success fs-6">{{ council_decision.get_decision_type_display }}</span>
+                {% else %}
+                <span class="badge bg-secondary">بانتظار جلسة مجلس الإدارة</span>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">مراجعة مجلس الإدارة للتقرير النهائي وإصدار وثيقة الاعتماد الرسمية، تليها المتابعة السنوية الدورية.</p>
+
+            {% if council_decision %}
+            <div class="bg-light p-3 rounded mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small fw-bold">القرار: {{ council_decision.decree_number }}</span>
+                    <span class="badge bg-success">مدة السريان: {{ council_decision.validity_years }} سنوات</span>
+                </div>
+                <div class="small text-muted mb-2"><i class="fa-solid fa-calendar me-1"></i> فترة السريان: من {{ council_decision.start_date }} حتى {{ council_decision.expiry_date }}</div>
+                
+                {% if council_decision.certificate %}
+                <div class="p-2 bg-white rounded border d-flex justify-content-between align-items-center">
+                    <div class="small">
+                        <span class="fw-bold text-success"><i class="fa-solid fa-award me-1"></i> شهادة الاعتماد الوطنية:</span>
+                        <code class="d-block">{{ council_decision.certificate.national_registry_code }}</code>
+                    </div>
+                    <a href="{% url 'decisions:certificate_detail' council_decision.certificate.pk %}" class="btn btn-sm btn-warning fw-bold">
+                        <i class="fa-solid fa-qrcode me-1"></i> عرض الشهادة
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center">
+                {% if council_decision %}
+                <a href="{% url 'surveillance:manage' council_decision.pk %}" class="btn btn-sm btn-outline-success">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> {% if is_institution %}خطة التحسين ورفع التقرير السنوي{% else %}متابعة خطة التحسين وتقارير المؤسسة{% endif %}
+                </a>
+                {% else %}
+                <button class="btn btn-sm btn-outline-secondary disabled" title="تتاح بعد صدور قرار الاعتماد">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> خطة التحسين (بعد صدور القرار)
+                </button>
+                {% endif %}
+
+                {% if is_board and not council_decision %}
+                <a href="{% url 'decisions:issue_decision' app.pk %}" class="btn btn-sm btn-danger fw-bold">
+                    <i class="fa-solid fa-gavel me-1"></i> مداولات وقرار المجلس (خاص بمجلس الإدارة)
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal: University President Endorsement -->
+<div class="modal fade" id="presidentEndorseModal" tabindex="-1" aria-labelledby="presidentEndorseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'accreditation:president_endorse' app.pk %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="presidentEndorseModalLabel">
+                        <i class="fa-solid fa-file-signature me-2"></i> توقيع وتفويض رئيس الجامعة الرسمي
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-success bg-opacity-10 border-success mb-3">
+                        <h6 class="fw-bold mb-1"><i class="fa-solid fa-building-columns me-1"></i> الصفة السيادية والتفويض القانوني (المفوض الأعلى للمؤسسة)</h6>
+                        <p class="small mb-0">بموجب هذا التوقيع الرقمي، يعتمد <strong>رئيس الجامعة</strong> تقديم هذا الملف رسمياً لمجلس الاعتماد الأكاديمي، مع الالتزام باستيفاء كافة الشروط الأكاديمية والمالية وتحمل المسؤولية القانونية عن دقة الشواهد والبيانات المرفوعة.</p>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">اسم المؤسسة التعليمية:</label>
+                            <input type="text" class="form-control" value="{{ app.institution.name }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">مسار الاعتماد / البرنامج:</label>
+                            <input type="text" class="form-control" value="{{ app.get_track_display }} {% if app.program %}- {{ app.program.name }}{% endif %}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-success">رقم وتاريخ قرار / تفويض رئيس الجامعة:</label>
+                            <input type="text" name="president_decree_ref" class="form-control" placeholder="مثال: قرار رئيس الجامعة رقم (45) لسنة 2026" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">توجيهات وملاحظات رئيس الجامعة:</label>
+                            <textarea name="president_notes" class="form-control" rows="3" placeholder="توجيهات معالي رئيس الجامعة لمركز التطوير وضمان الجودة وأمانة مجلس الاعتماد..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4">
+                        <i class="fa-solid fa-stamp me-1"></i> توقيع واعتماد الطلب رسمياً
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,779 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل جلسة مجلس الإدارة - {{ meeting.meeting_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <!-- Top Header & Actions -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'decisions:meetings_list' %}" class="text-decoration-none">جلسات المجلس</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'decisions:council_workspace' %}" class="text-decoration-none">لوحة حوكمة المجلس</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ meeting.meeting_number }}</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-users-rectangle text-primary me-2"></i>
+                {{ meeting.meeting_number }}
+            </h3>
+            <p class="text-muted mb-0">
+                <span class="badge {% if meeting.meeting_type == 'ORDINARY' %}bg-primary{% else %}bg-danger{% endif %} me-1">
+                    {{ meeting.get_meeting_type_display }}
+                </span>
+                <span class="badge {% if meeting.status == 'MINUTES_RATIFIED' %}bg-success{% elif meeting.status == 'IN_SESSION' %}bg-warning text-dark{% elif meeting.status == 'CANCELLED' %}bg-danger{% else %}bg-secondary{% endif %} me-1">
+                    {{ meeting.get_status_display }}
+                </span>
+                <span class="ms-2"><i class="fa-regular fa-calendar me-1"></i> {{ meeting.meeting_date }} {% if meeting.meeting_time %}({{ meeting.meeting_time }}{% if meeting.end_time %} - {{ meeting.end_time }}{% endif %}){% endif %}</span>
+                <span class="ms-2"><i class="fa-solid fa-location-dot me-1"></i> {{ meeting.location }}</span>
+                <span class="ms-2"><i class="fa-solid fa-user-tie me-1"></i> رئيس الجلسة: {{ meeting.chairperson_name }}</span>
+                {% if meeting.secretary_name %}
+                <span class="ms-2"><i class="fa-solid fa-pen-nib me-1"></i> أمين السر: {{ meeting.secretary_name }}</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'decisions:meeting_minutes_print' meeting.pk %}" target="_blank" class="btn btn-outline-dark btn-sm fw-bold">
+                <i class="fa-solid fa-print me-1"></i> عرض وطباعة المحضر الرسمي (PDF)
+            </a>
+            {% if can_manage_meeting %}
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#addAgendaItemModal">
+                <i class="fa-solid fa-plus me-1"></i> إدراج بند بجدول الأعمال
+            </button>
+            <button type="button" class="btn btn-outline-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#issueResolutionModal">
+                <i class="fa-solid fa-gavel me-1"></i> إصدار قرار / توصية / تكليف
+            </button>
+            <form action="{% url 'decisions:meeting_send_invitations' meeting.pk %}" method="POST" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
+                    <i class="fa-solid fa-paper-plane me-1"></i> توجيه الدعوات وجدول الأعمال للأعضاء
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Overview Row: Agenda Summary, Status Controls & Quorum Engine -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card card-custom h-100 p-3 shadow-sm border-0">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-list-check text-success me-2"></i> البيان العام لجدول أعمال الجلسة وحالتها القانونية
+                    </h5>
+                    {% if can_manage_meeting %}
+                    <form action="{% url 'decisions:meeting_status_transition' meeting.pk %}" method="POST" class="d-flex gap-1 align-items-center">
+                        {% csrf_token %}
+                        <select name="new_status" class="form-select form-select-sm" style="width: auto;">
+                            {% for code, label in meeting_statuses %}
+                            <option value="{{ code }}" {% if meeting.status == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="reason" class="form-control form-control-sm" placeholder="ملاحظة / سبب الانتقال" style="width: 150px;">
+                        <button type="submit" class="btn btn-sm btn-dark">تحديث الحالة</button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="p-3 bg-light rounded text-secondary mb-2" style="white-space: pre-line;">{{ meeting.meeting_agenda|default:"لم يتم تدوين ملخص جدول الأعمال بعد." }}</div>
+
+                {% if meeting.meeting_link %}
+                <div class="small mb-2">
+                    <i class="fa-solid fa-video text-primary me-1"></i> رابط الانعقاد المرئي عن بُعد:
+                    <a href="{{ meeting.meeting_link }}" target="_blank" class="fw-bold">{{ meeting.meeting_link }}</a>
+                </div>
+                {% endif %}
+
+                {% if meeting.cancellation_reason %}
+                <div class="alert alert-danger py-2 px-3 small mb-0">
+                    <strong>سبب الإلغاء / التعليق:</strong> {{ meeting.cancellation_reason }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card card-custom h-100 p-3 shadow-sm border-0">
+                <h5 class="fw-bold text-dark mb-3">
+                    <i class="fa-solid fa-scale-balanced text-primary me-2"></i> محرك النصاب القانوني (المادة 6)
+                </h5>
+                <div class="text-center py-1">
+                    {% if quorum_met %}
+                    <div class="badge bg-success fs-6 p-2 w-100 mb-2">
+                        <i class="fa-solid fa-check-double me-1"></i> النصاب القانوني مكتمل ومتحقق
+                    </div>
+                    {% else %}
+                    <div class="badge bg-danger fs-6 p-2 w-100 mb-2">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> النصاب غير مكتمل بعد
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-around text-center mt-2">
+                        <div>
+                            <div class="fs-3 fw-bold text-primary">{{ confirmed_count }}</div>
+                            <div class="text-muted small">الأعضاء المصوتون الحاضرون</div>
+                        </div>
+                        <div class="border-start"></div>
+                        <div>
+                            <div class="fs-3 fw-bold text-secondary">{{ effective_quorum }}</div>
+                            <div class="text-muted small">النصاب القانوني المطلوب</div>
+                        </div>
+                        <div class="border-start"></div>
+                        <div>
+                            <div class="fs-3 fw-bold text-dark">{{ active_voting_members_count }}</div>
+                            <div class="text-muted small">إجمالي الأعضاء المصوتين</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if user_attendance or is_voting_member %}
+                <hr class="my-2">
+                <div class="bg-light p-2 rounded">
+                    <div class="small fw-bold text-dark mb-2">
+                        <i class="fa-solid fa-user-check me-1"></i> تأكيد موقف الحضور في الجلسة (RSVP):
+                    </div>
+                    <form action="{% url 'decisions:meeting_rsvp' meeting.pk %}" method="POST">
+                        {% csrf_token %}
+                        <div class="row g-1 mb-2">
+                            <div class="col-5">
+                                <select name="participation_mode" class="form-select form-select-sm">
+                                    {% for mode_code, mode_label in participation_modes %}
+                                    <option value="{{ mode_code }}" {% if user_attendance and user_attendance.participation_mode == mode_code %}selected{% endif %}>{{ mode_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-7">
+                                <input type="text" name="remarks" class="form-control form-control-sm" placeholder="ملاحظات أو عذر الاعتذار..." value="{{ user_attendance.remarks|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="status" value="CONFIRMED" class="btn btn-sm btn-success flex-grow-1 fw-bold">
+                                <i class="fa-solid fa-check me-1"></i> تأكيد الحضور
+                            </button>
+                            <button type="submit" name="status" value="APOLOGIZED" class="btn btn-sm btn-outline-danger flex-grow-1 fw-bold">
+                                <i class="fa-solid fa-xmark me-1"></i> اعتذار مسبب
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: Structured Agenda Items & 17-Part Dossier Access -->
+    <div class="card card-custom p-4 mb-4 shadow-sm border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-folder-tree text-primary me-2"></i> بنود جدول الأعمال والملفات الكاملة المعروضة على المجلس ({{ agenda_items|length }})
+            </h5>
+            {% if can_manage_meeting %}
+            <button type="button" class="btn btn-sm btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addAgendaItemModal">
+                <i class="fa-solid fa-plus me-1"></i> إضافة بند جديد لجدول الأعمال
+            </button>
+            {% endif %}
+        </div>
+
+        {% if agenda_items %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>رقم وعنوان البند</th>
+                        <th>التصنيف اللائحي</th>
+                        <th>الجهة المحيلة / العارض</th>
+                        <th>الإجراء المطلوب</th>
+                        <th>حالة البند</th>
+                        <th>الملف الكامل والمداولات والتصويت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in agenda_items %}
+                    <tr>
+                        <td class="fw-bold">{{ item.position }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ item.item_number }}: {{ item.title }}</div>
+                            <div class="small text-muted">{{ item.description|truncatechars:95 }}</div>
+                            {% if item.initial_recommendation %}
+                            <div class="small text-success mt-1"><i class="fa-solid fa-lightbulb me-1"></i> التوصية الأولية: {{ item.initial_recommendation|truncatechars:80 }}</div>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-info-subtle text-dark border">{{ item.get_item_category_display }}</span></td>
+                        <td>
+                            <div class="small fw-bold">{{ item.referring_entity }}</div>
+                            <div class="small text-muted">{{ item.presenter_name }}</div>
+                        </td>
+                        <td><span class="badge bg-primary-subtle text-primary border border-primary">{{ item.get_required_action_display }}</span></td>
+                        <td>
+                            <span class="badge {% if item.status == 'DECIDED' %}bg-success{% elif item.status == 'VOTING_OPEN' %}bg-warning text-dark{% elif item.status == 'POSTPONED' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ item.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                <a href="{% url 'decisions:agenda_item_detail' item.pk %}" class="btn btn-sm btn-outline-primary fw-bold">
+                                    <i class="fa-solid fa-book-open me-1"></i> استعراض الملف الكامل والمداولات ({{ item.discussions.count }})
+                                </a>
+                                {% if can_manage_meeting and item.required_action != 'DISCUSSION_ONLY' %}
+                                <form action="{% url 'decisions:agenda_item_ballot_open' item.pk %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="voting_mode" value="SECRET">
+                                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold" title="فتح اقتراع سري على البند">
+                                        <i class="fa-solid fa-box-archive me-1"></i> اقتراع سري
+                                    </button>
+                                </form>
+                                <form action="{% url 'decisions:agenda_item_ballot_open' item.pk %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="voting_mode" value="PUBLIC">
+                                    <button type="submit" class="btn btn-sm btn-outline-dark fw-bold" title="فتح تصويت علني على البند">
+                                        <i class="fa-solid fa-hand-paper me-1"></i> تصويت علني
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-light border text-center text-muted mb-0">
+            لا توجد بنود مفصلة مضافة بعد. اضغط "إضافة بند جديد لجدول الأعمال" لإدراج طلبات الاعتماد أو اللوائح أو التقارير أو التظلمات.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Section 2: Public & Secret Voting Sessions & Detailed Article 6 Results -->
+    <div class="card card-custom p-4 mb-4 shadow-sm border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-box-archive text-warning me-2"></i> جلسات التصويت العلني والاقتراع السري ونتائج الفرز (المادة 6)
+            </h5>
+            <small class="text-muted">
+                <i class="fa-solid fa-scale-balanced text-success me-1"></i> تصدر القرارات بأغلبية الحاضرين، وعند التساوي يرجح الجانب الذي منه رئيس المجلس
+            </small>
+        </div>
+
+        {% if ballots %}
+        <div class="row g-3">
+            {% for ballot in ballots %}
+            <div class="col-lg-6">
+                <div class="card border {% if ballot.is_open %}border-warning bg-light{% else %}border-secondary{% endif %} p-3 rounded-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge {% if ballot.is_open %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ ballot.get_status_display }}
+                            </span>
+                            <span class="badge {% if ballot.voting_mode == 'SECRET' %}bg-dark{% else %}bg-info text-dark{% endif %} ms-1">
+                                {{ ballot.get_voting_mode_display }}
+                            </span>
+                            <div class="fw-bold text-dark mt-1">{{ ballot.title }}</div>
+                            {% if ballot.proposed_decision_text %}
+                            <div class="small text-muted mt-1">مشروع القرار: {{ ballot.proposed_decision_text }}</div>
+                            {% endif %}
+                        </div>
+                        <span class="badge bg-primary">{{ ballot.total_votes_cast }} صوت مسجل</span>
+                    </div>
+
+                    <!-- Voting Controls for Eligible Present Board Members -->
+                    {% if ballot.is_open and is_voting_member %}
+                        {% if ballot.pk in user_voted_ballot_ids %}
+                        <div class="alert alert-success py-2 px-3 small my-2 mb-0">
+                            <i class="fa-solid fa-check-circle me-1"></i> تم تسجيل صوتك بنجاح في هذا الاقتراع (غير قابل للتعديل أو التكرار).
+                        </div>
+                        {% else %}
+                        <div class="bg-white p-3 rounded border border-warning my-2">
+                            <div class="small fw-bold text-dark mb-2">
+                                <i class="fa-solid fa-person-booth text-primary me-1"></i> الإدلاء بالصوت ({{ ballot.get_voting_mode_display }}):
+                            </div>
+                            <form action="{% url 'decisions:ballot_cast_vote' ballot.pk %}" method="POST">
+                                {% csrf_token %}
+                                <div class="row g-2 mb-2">
+                                    {% if ballot.application %}
+                                    <div class="col-4">
+                                        <button type="submit" name="vote_choice" value="FULL" class="btn btn-sm btn-outline-success w-100 fw-bold">
+                                            موافقة (اعتماد كامل)
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button type="submit" name="vote_choice" value="CONDITIONAL" class="btn btn-sm btn-outline-warning text-dark w-100 fw-bold">
+                                            موافقة (مشروط)
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button type="submit" name="vote_choice" value="DENIED" class="btn btn-sm btn-outline-danger w-100 fw-bold">
+                                            رفض الاعتماد
+                                        </button>
+                                    </div>
+                                    {% else %}
+                                    <div class="col-6">
+                                        <button type="submit" name="vote_choice" value="APPROVE" class="btn btn-sm btn-outline-success w-100 fw-bold">
+                                            <i class="fa-solid fa-check me-1"></i> موافقة (APPROVE)
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button type="submit" name="vote_choice" value="REJECT" class="btn btn-sm btn-outline-danger w-100 fw-bold">
+                                            <i class="fa-solid fa-xmark me-1"></i> رفض / عدم موافقة (REJECT)
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                    <div class="col-12">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 fw-bold" data-bs-toggle="collapse" data-bs-target="#abstainArea{{ ballot.pk }}">
+                                            امتناع مسبب (ABSTAIN)
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="collapse mt-2" id="abstainArea{{ ballot.pk }}">
+                                    <input type="text" name="abstain_justification" class="form-control form-control-sm mb-2" placeholder="بيان سبب الامتناع وفقاً للائحة...">
+                                    <button type="submit" name="vote_choice" value="ABSTAIN" class="btn btn-sm btn-secondary w-100 fw-bold">
+                                        تأكيد الامتناع عن التصويت
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- Detailed Voting Results (Closed Ballot) -->
+                    {% if not ballot.is_open %}
+                    <div class="mt-2 pt-2 border-top small">
+                        <div class="row text-center g-1 mb-2">
+                            <div class="col-4 bg-white p-1 rounded border">
+                                <div class="text-muted">الحاضرون / المؤهلون</div>
+                                <div class="fw-bold">{{ ballot.present_members_snapshot }} / {{ ballot.eligible_voters_snapshot }}</div>
+                            </div>
+                            <div class="col-4 bg-white p-1 rounded border">
+                                <div class="text-muted">إجمالي الموافقين</div>
+                                <div class="fw-bold text-success">{{ ballot.votes_approve_count }}</div>
+                            </div>
+                            <div class="col-4 bg-white p-1 rounded border">
+                                <div class="text-muted">الرافضون / الممتنعون</div>
+                                <div class="fw-bold text-danger">{{ ballot.votes_reject_count }} / {{ ballot.votes_abstain_count }}</div>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-1">
+                            <span>لم يصوتوا: <strong>{{ ballot.non_voting_count }}</strong></span>
+                            <span>الأغلبية: <strong>{% if ballot.majority_achieved %}متحققة{% else %}غير متحققة{% endif %}</strong></span>
+                            <span class="badge {% if ballot.majority_achieved %}bg-success{% elif ballot.tie_occurred %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                النتيجة النهائية: {{ ballot.final_result }}
+                            </span>
+                        </div>
+                        {% if ballot.tie_broken_by_chairperson %}
+                        <div class="alert alert-info py-1 px-2 mt-2 mb-0 small">
+                            <i class="fa-solid fa-gavel me-1"></i> تساوت الأصوات وتم ترجيح الجانب الذي منه رئيس المجلس ({{ ballot.chairperson_tie_break_side }}) وفقاً للمادة (6).
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Close & Tally or Resolve Tie (Chairperson / Secretary) -->
+                    {% if can_manage_meeting %}
+                    <div class="mt-3 pt-2 border-top d-flex justify-content-end gap-2">
+                        {% if ballot.is_open or ballot.tie_occurred and not ballot.tie_broken_by_chairperson %}
+                        <form action="{% url 'decisions:ballot_close_and_tally' ballot.pk %}" method="POST" class="d-flex gap-1 align-items-center">
+                            {% csrf_token %}
+                            <select name="chairperson_tie_break" class="form-select form-select-sm" style="width: auto;" title="ترجيح رئيس المجلس عند التساوي (المادة 6)">
+                                <option value="">ترجيح الرئيس (عند التساوي فقط)</option>
+                                <option value="APPROVE">ترجيح جانب الموافقة (APPROVE)</option>
+                                <option value="REJECT">ترجيح جانب الرفض (REJECT)</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-dark fw-bold">
+                                <i class="fa-solid fa-lock me-1"></i> إغلاق وفرز الأصوات
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0"><i class="fa-solid fa-info-circle me-1"></i> لا توجد جلسات تصويت مفتوحة أو سابقة لهذه الجلسة.</p>
+        {% endif %}
+    </div>
+
+    <!-- Section 3: Attendance Roster & Quorum Verification (Voting Members, Experts, Guests) -->
+    <div class="card card-custom p-4 mb-4 shadow-sm border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-clipboard-user text-primary me-2"></i> سجل الحضور والغياب والمشاركين والخبراء المدعوين
+            </h5>
+            {% if can_manage_meeting %}
+            <button type="button" class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addParticipantModal">
+                <i class="fa-solid fa-user-plus me-1"></i> دعوة عضو / خبير مختص / ضيف (المادة 6)
+            </button>
+            {% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>الاسم</th>
+                        <th>صفة الحضور والتصويت</th>
+                        <th>آلية المشاركة</th>
+                        <th>حالة الدعوة والحضور</th>
+                        <th>الاطلاع على الدعوة</th>
+                        <th>متواجد بالجلسة حالياً</th>
+                        {% if can_manage_meeting %}<th>تحديث الحضور / الانسحاب</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attendances %}
+                    <tr>
+                        <td class="fw-bold">{{ att.member.get_full_name|default:att.member.username }}</td>
+                        <td>
+                            <span class="badge {% if att.attendee_category == 'VOTING_MEMBER' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                {{ att.get_attendee_category_display }}
+                            </span>
+                        </td>
+                        <td>{{ att.get_participation_mode_display }}</td>
+                        <td>
+                            <span class="badge {% if att.status == 'CONFIRMED' or att.status == 'ATTENDED' %}bg-success{% elif att.status == 'APOLOGIZED' or att.status == 'ABSENT' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ att.get_status_display }}
+                            </span>
+                            {% if att.remarks %}<div class="small text-muted">{{ att.remarks }}</div>{% endif %}
+                        </td>
+                        <td>
+                            {% if att.invitation_read %}
+                            <span class="text-success small"><i class="fa-solid fa-check-double"></i> اطلع ({{ att.invitation_read_at|date:"Y-m-d H:i" }})</span>
+                            {% else %}
+                            <span class="text-muted small">قيد الانتظار</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if att.is_currently_present and att.status in 'CONFIRMED,ATTENDED' %}
+                            <span class="badge bg-success-subtle text-success border border-success">حاضر بالجلسة</span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger">منسحب / غير متواجد</span>
+                            {% endif %}
+                        </td>
+                        {% if can_manage_meeting %}
+                        <td>
+                            <form action="{% url 'decisions:meeting_record_attendance' meeting.pk %}" method="POST" class="d-flex gap-1 align-items-center">
+                                {% csrf_token %}
+                                <input type="hidden" name="attendance_id" value="{{ att.pk }}">
+                                <select name="status" class="form-select form-select-sm" style="width: auto;">
+                                    {% for st_code, st_label in rsvp_statuses %}
+                                    <option value="{{ st_code }}" {% if att.status == st_code %}selected{% endif %}>{{ st_label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select name="is_currently_present" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="1" {% if att.is_currently_present %}selected{% endif %}>متواجد</option>
+                                    <option value="0" {% if not att.is_currently_present %}selected{% endif %}>منسحب</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-dark">حفظ</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-3">لم يتم إرسال دعوات بعد لهذه الجلسة.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 4: Resolutions, Recommendations, Assignments & Official Minutes -->
+    <div class="row g-3 mb-4">
+        <!-- Resolutions & Assignments -->
+        <div class="col-lg-7">
+            <div class="card card-custom p-4 shadow-sm border-0 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-gavel text-success me-2"></i> سجل القرارات والتوصيات والتكليفات والإحالات ({{ resolutions|length }})
+                    </h5>
+                    {% if can_manage_meeting %}
+                    <button type="button" class="btn btn-sm btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#issueResolutionModal">
+                        <i class="fa-solid fa-plus me-1"></i> تسجيل قرار / توصية / تكليف
+                    </button>
+                    {% endif %}
+                </div>
+                {% if resolutions %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الرقم والنوع</th>
+                                <th>الموضوع والمنطوق</th>
+                                <th>الجهة المكلفة والمهلة</th>
+                                <th>حالة التنفيذ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in resolutions %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ res.resolution_number }}</div>
+                                    <span class="badge bg-dark">{{ res.get_resolution_type_display }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ res.title }}</div>
+                                    <div class="small text-muted">{{ res.decision_text|truncatechars:90 }}</div>
+                                </td>
+                                <td>
+                                    <div class="small fw-bold">{{ res.responsible_entity|default:"-" }}</div>
+                                    {% if res.deadline_date %}<div class="small text-danger">المهلة: {{ res.deadline_date }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    <form action="{% url 'decisions:resolution_update_status' res.pk %}" method="POST" class="d-flex gap-1">
+                                        {% csrf_token %}
+                                        <select name="implementation_status" class="form-select form-select-sm" style="width: auto;">
+                                            {% for imp_code, imp_label in implementation_statuses %}
+                                            <option value="{{ imp_code }}" {% if res.implementation_status == imp_code %}selected{% endif %}>{{ imp_label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">تحديث</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">لم تصدر قرارات أو توصيات أو تكليفات مسجلة بعد في هذه الجلسة.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Official Meeting Minutes & Version Control -->
+        <div class="col-lg-5">
+            <div class="card card-custom p-4 shadow-sm border-0 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-file-signature text-primary me-2"></i> المحضر الرسمي للجلسة وإصداراته
+                    </h5>
+                    <a href="{% url 'decisions:meeting_minutes_print' meeting.pk %}" target="_blank" class="btn btn-sm btn-outline-dark">
+                        <i class="fa-solid fa-file-pdf me-1"></i> نسخة الطباعة والـ PDF
+                    </a>
+                </div>
+
+                {% if official_minutes %}
+                <div class="mb-2">
+                    <span class="badge {% if official_minutes.status == 'APPROVED' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                        {{ official_minutes.get_status_display }}
+                    </span>
+                    <span class="ms-2 fw-bold">{{ official_minutes.minutes_number }} (الإصدار v{{ official_minutes.version_number }})</span>
+                </div>
+                {% endif %}
+
+                {% if can_manage_meeting and not official_minutes or can_manage_meeting and official_minutes.status != 'APPROVED' %}
+                <form action="{% url 'decisions:meeting_minutes_manage' meeting.pk %}" method="POST">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label class="small fw-bold">ديباجة افتتاح الجلسة والنصاب:</label>
+                        <textarea name="opening_statement" rows="2" class="form-control form-control-sm" placeholder="يتم التوليد التلقائي إن تُرك فارغاً...">{{ official_minutes.opening_statement|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">سجل المداولات والتحفظات:</label>
+                        <textarea name="discussions_record" rows="2" class="form-control form-control-sm" placeholder="يتم التوليد التلقائي من مداخلات البنود...">{{ official_minutes.discussions_record|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">سجل نتائج التصويت والقرارات والتكليفات:</label>
+                        <textarea name="decisions_record" rows="2" class="form-control form-control-sm" placeholder="يتم التوليد التلقائي من نتائج التصويت...">{{ official_minutes.decisions_record|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <input type="text" name="modification_reason" class="form-control form-control-sm" placeholder="سبب التعديل لحفظه في سجل الإصدارات...">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-sm btn-primary flex-grow-1 fw-bold">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> حفظ / توليد إصدار المحضر
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+
+                {% if official_minutes and official_minutes.status != 'APPROVED' and can_manage_meeting %}
+                <form action="{% url 'decisions:meeting_minutes_approve' meeting.pk %}" method="POST" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success w-100 fw-bold">
+                        <i class="fa-solid fa-signature me-1"></i> اعتماد وتوقيع رئيس المجلس على المحضر نهائياً (قفل المحضر)
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if minutes_versions %}
+                <hr class="my-2">
+                <div class="small fw-bold text-muted mb-1">الأرشيف التاريخي لإصدارات المحضر ({{ minutes_versions|length }}):</div>
+                <ul class="list-unstyled small mb-0">
+                    {% for ver in minutes_versions %}
+                    <li class="text-muted"><i class="fa-solid fa-clock-rotate-left me-1"></i> الإصدار v{{ ver.version_number }} - بواسطة {{ ver.modified_by.get_full_name|default:"النظام" }} ({{ ver.modification_reason }})</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Agenda Item -->
+<div class="modal fade" id="addAgendaItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form action="{% url 'decisions:agenda_item_create' meeting.pk %}" method="POST" enctype="multipart/form-data" class="modal-content">
+            {% csrf_token %}
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">إدراج بند جديد في جدول أعمال الجلسة</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small">رقم البند</label>
+                        <input type="text" name="item_number" class="form-control form-control-sm" placeholder="مثال: البند الأول">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold small">تصنيف البند (12 تصنيفاً لائحياً)</label>
+                        <select name="item_category" class="form-select form-select-sm">
+                            {% for cat_code, cat_label in item_categories %}
+                            <option value="{{ cat_code }}">{{ cat_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">الإجراء المطلوب من المجلس</label>
+                        <select name="required_action" class="form-select form-select-sm">
+                            {% for act_code, act_label in required_actions %}
+                            <option value="{{ act_code }}">{{ act_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small">عنوان وموضوع البند</label>
+                        <input type="text" name="title" class="form-control form-control-sm" required placeholder="عنوان الموضوع المعروض على المجلس...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">ربط بطلب اعتماد أكاديمي (اختياري - يفعّل الملف الكامل المكون من 17 جزءاً)</label>
+                        <select name="application_id" class="form-select form-select-sm">
+                            <option value="">-- بدون طلب اعتماد --</option>
+                            {% for app in eligible_applications %}
+                            <option value="{{ app.pk }}">[{{ app.application_number }}] {{ app.institution.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">الجهة المحيلة / الإدارة العارضة</label>
+                        <input type="text" name="referring_entity" class="form-control form-control-sm" value="الأمانة العامة للمجلس">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small">وصف وتفاصيل الموضوع والمبررات</label>
+                        <textarea name="description" rows="2" class="form-control form-control-sm" required></textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small">التوصية الأولية المرفوعة للمجلس</label>
+                        <textarea name="initial_recommendation" rows="2" class="form-control form-control-sm"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary btn-sm fw-bold">إدراج البند في جدول الأعمال</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add Participant / Expert / Guest -->
+<div class="modal fade" id="addParticipantModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{% url 'decisions:meeting_add_participant' meeting.pk %}" method="POST" class="modal-content">
+            {% csrf_token %}
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">دعوة مشارك أو خبير مختص للجلسة (المادة 6)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label fw-bold small">المستخدم المدعو</label>
+                    <select name="user_id" class="form-select form-select-sm" required>
+                        {% for u in all_invitable_users %}
+                        <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.get_role_display }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label fw-bold small">صفة الحضور وحق التصويت</label>
+                    <select name="attendee_category" class="form-select form-select-sm">
+                        {% for cat_code, cat_label in attendee_categories %}
+                        <option value="{{ cat_code }}">{{ cat_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label fw-bold small">تخصيص بند محدد لاطلاع الخبير/الضيف (اختياري)</label>
+                    <select name="agenda_item_id" class="form-select form-select-sm">
+                        <option value="">-- جميع البنود غير السرية --</option>
+                        {% for item in agenda_items %}
+                        <option value="{{ item.pk }}">{{ item.item_number }}: {{ item.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-dark btn-sm fw-bold">إضافة وتوجيه الدعوة</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Issue Resolution / Recommendation / Assignment -->
+<div class="modal fade" id="issueResolutionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form action="{% url 'decisions:resolution_create' meeting.pk %}" method="POST" enctype="multipart/form-data" class="modal-content">
+            {% csrf_token %}
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold">إصدار قرار / توصية / تكليف / إحالة / تأجيل</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">نوع المخرج</label>
+                        <select name="resolution_type" class="form-select form-select-sm">
+                            {% for r_code, r_label in resolution_types %}
+                            <option value="{{ r_code }}">{{ r_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">البند المرتبط</label>
+                        <select name="agenda_item_id" class="form-select form-select-sm">
+                            <option value="">-- عام للجلسة --</option>
+                            {% for item in agenda_items %}
+                            <option value="{{ item.pk }}">{{ item.item_number }}: {{ item.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">رقم القرار / التكليف</label>
+                        <input type="text" name="resolution_number" class="form-control form-control-sm" placeholder="تلقائي إن تُرك فارغاً">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small">عنوان القرار أو التوصية أو التكليف</label>
+                        <input type="text" name="title" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small">منطوق القرار / التوصية / التكليف التفصيلي</label>
+                        <textarea name="decision_text" rows="3" class="form-control form-control-sm" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">الجهة المكلفة بالتنفيذ / المتابعة</label>
+                        <input type="text" name="responsible_entity" class="form-control form-control-sm" placeholder="مثال: الأمانة العامة / الإدارة العامة للاعتماد">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">الموعد النهائي للتنفيذ</label>
+                        <input type="date" name="deadline_date" class="form-control form-control-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-success btn-sm fw-bold">إصدار وتوثيق المخرج الرسمي</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

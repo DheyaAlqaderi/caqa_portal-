@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}فحص ونظر التظلم | {{ grievance.appeal_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-secondary mb-1">الإدارة العامة للشؤون القانونية والطعون</span>
+                    <h4 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-gavel text-primary me-2"></i> دراسة وفحص التظلم رقم: {{ grievance.appeal_number }}
+                    </h4>
+                    <small class="text-muted">المؤسسة: {{ app.institution.name }} | الطلب: {{ app.application_number }}</small>
+                </div>
+                <div>
+                    <span class="badge {% if grievance.status == 'SUBMITTED' %}bg-warning text-dark{% elif grievance.status == 'UNDER_COMMITTEE_REVIEW' %}bg-info text-white{% elif grievance.status == 'ACCEPTED_RECONSIDERATION' %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                        {{ grievance.get_status_display }}
+                    </span>
+                    <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary btn-sm ms-2">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة للملف
+                    </a>
+                </div>
+            </div>
+
+            <!-- Grievance details card -->
+            <div class="card bg-light border-0 p-3 mb-4">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <span class="text-muted d-block small">مقدم التظلم:</span>
+                        <strong class="text-dark">{{ grievance.appellant_user.get_full_name }} ({{ grievance.appellant_user.email }})</strong>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <span class="text-muted d-block small">تاريخ تقديم التظلم:</span>
+                        <strong class="text-dark">{{ grievance.submission_date|date:"Y-m-d H:i" }}</strong>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <span class="text-muted d-block small fw-bold mb-1">أسباب وحيثيات التظلم المقدمة من المؤسسة:</span>
+                    <div class="p-3 bg-white rounded border text-dark" style="white-space: pre-wrap;">{{ grievance.grounds_of_appeal }}</div>
+                </div>
+                {% if grievance.supporting_document %}
+                <div class="mt-3">
+                    <a href="{{ grievance.supporting_document.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fa-solid fa-file-pdf me-1"></i> تحميل المذكرة القانونية والوثائق المؤيدة
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Section 1: Legal Director & Grievance Committee Review Form -->
+            {% if can_review_legal %}
+            <div class="card border p-3 mb-4 shadow-sm">
+                <h5 class="fw-bold text-primary mb-3">
+                    <i class="fa-solid fa-scale-balanced me-2"></i> المطالعة القانونية وتقرير لجنة التظلمات المستقلة
+                </h5>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_legal_report">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">تقرير المطالعة القانونية والتوصية الفنية:</label>
+                        <textarea name="committee_report" rows="5" class="form-control" placeholder="تدوين الرأي القانوني بشأن قبول التظلم شكلاً وموضوعاً، ومدى استيفاء المواعيد القانونية والحجج الموضوعية..." required>{{ grievance.committee_report }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small"><i class="fa-solid fa-file-pdf text-danger me-1"></i> إرفاق تقرير رئيس لجنة فحص الطعون المستقلة (PDF):</label>
+                        <input type="file" name="committee_chair_report" class="form-control" accept=".pdf,.doc,.docx">
+                        {% if grievance.committee_chair_report %}
+                        <div class="mt-2">
+                            <a href="{{ grievance.committee_chair_report.url }}" target="_blank" class="badge bg-primary text-decoration-none p-2">
+                                <i class="fa-solid fa-download me-1"></i> تحميل التقرير المرفوع حالياً
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary fw-bold">
+                            <i class="fa-solid fa-check-double me-1"></i> حفظ تقرير اللجنة وإحالة الملف لمجلس الإدارة
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+                {% if grievance.committee_report or grievance.committee_chair_report %}
+                <div class="card border p-3 mb-4 bg-light">
+                    <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-scale-balanced me-2"></i> تقرير لجنة التظلمات المستقلة والشؤون القانونية:</h6>
+                    {% if grievance.committee_report %}
+                    <div class="p-3 bg-white rounded border mb-2" style="white-space: pre-wrap;">{{ grievance.committee_report }}</div>
+                    {% endif %}
+                    {% if grievance.committee_chair_report %}
+                    <a href="{{ grievance.committee_chair_report.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fa-solid fa-file-pdf me-1"></i> عرض تقرير رئيس لجنة الطعون المستقلة
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- Section 2: Board of Directors Resolution -->
+            {% if can_resolve_board %}
+            <div class="card border p-3 mb-4 border-warning bg-light shadow-sm">
+                <h5 class="fw-bold text-dark mb-3">
+                    <i class="fa-solid fa-building-columns text-warning me-2"></i> البت النهائي في التظلم (مجلس إدارة مجلس الاعتماد)
+                </h5>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="resolve_board">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">قرار المجلس المعتمد:</label>
+                        <select name="final_resolution" class="form-select fw-bold" required>
+                            <option value="accept" {% if grievance.status == 'ACCEPTED_RECONSIDERATION' %}selected{% endif %}>قبول التظلم وإعادة المداولة / النظر في الاعتماد</option>
+                            <option value="modify" {% if grievance.status == 'DECISION_MODIFIED' %}selected{% endif %}>تعديل قرار الاعتماد استجابة للتظلم</option>
+                            <option value="return_review" {% if grievance.status == 'RETURNED_ADDITIONAL_REVIEW' %}selected{% endif %}>إعادة الملف لفحص ميداني / مكتبي إضافي</option>
+                            <option value="reject" {% if grievance.status == 'REJECTED_DECISION_UPHELD' %}selected{% endif %}>رفض التظلم وتأييد القرار السابق الصادر عن المجلس</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">حيثيات ومنطوق قرار المجلس الرسمي:</label>
+                        <textarea name="final_resolution_notes" rows="4" class="form-control" placeholder="بيان الأسباب التي استند إليها مجلس الإدارة في قراره..." required>{{ grievance.final_resolution_notes }}</textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-success fw-bold px-4">
+                            <i class="fa-solid fa-stamp me-1"></i> اعتماد قرار المجلس النهائي حيال التظلم
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+                {% if grievance.final_resolution_notes %}
+                <div class="card border p-3 mb-4 bg-light border-success">
+                    <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-stamp me-2"></i> قرار المجلس النهائي:</h6>
+                    <div class="p-3 bg-white rounded border" style="white-space: pre-wrap;">{{ grievance.final_resolution_notes }}</div>
+                    {% if grievance.resolved_at %}
+                    <small class="text-muted mt-2 d-block">صدر بتاريخ: {{ grievance.resolved_at|date:"Y-m-d H:i" }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

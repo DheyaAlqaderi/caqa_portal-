@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+
+{% block title %}ترشيحات مجلس إدارة مجلس الاعتماد الأكاديمي | ديوان معالي الوزير{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 my-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            {% if user.role == 'MINISTER' or user.is_minister or user.is_superuser %}
+            <li class="breadcrumb-item"><a href="{% url 'decisions:minister_dashboard' %}">ديوان معالي الوزير</a></li>
+            {% else %}
+            <li class="breadcrumb-item"><a href="{% url 'decisions:meetings_list' %}">قرارات وجلسات المجلس</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">ترشيحات مجلس إدارة المجلس</li>
+        </ol>
+    </nav>
+
+    <!-- Top Action Bar -->
+    <div class="card card-custom p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold text-dark mb-1">
+                    <i class="fa-solid fa-users-viewfinder text-primary me-2"></i> سجل ترشيحات رئاسة وعضوية مجلس إدارة المجلس
+                </h4>
+                <p class="text-muted small mb-0">
+                    ممارسة الصلاحية السيادية لمعالي الوزير في ترشيح قيادة وأعضاء مجلس إدارة مجلس الاعتماد الأكاديمي والرفع بهم لدولة رئيس مجلس الوزراء لاستصدار القرارات الجمهورية.
+                </p>
+            </div>
+            {% if user.role == 'MINISTER' or user.is_minister or user.is_superuser or user.role == 'ADMIN' %}
+            <div>
+                <button type="button" class="btn btn-warning btn-lg fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#newNominationModal">
+                    <i class="fa-solid fa-user-plus me-1"></i> رفع ترشيح جديد لرئيس الوزراء
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Filter pills -->
+        <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top">
+            <a href="{% url 'decisions:minister_nominations_list' %}" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %} fw-bold">
+                كافة الترشيحات
+            </a>
+            <a href="?status=SUBMITTED_TO_PM" class="btn btn-sm {% if status_filter == 'SUBMITTED_TO_PM' %}btn-warning{% else %}btn-outline-warning text-dark{% endif %} fw-bold">
+                <i class="fa-solid fa-paper-plane me-1"></i> مرفوعة لدولة رئيس الوزراء
+            </a>
+            <a href="?status=DECREE_ISSUED" class="btn btn-sm {% if status_filter == 'DECREE_ISSUED' %}btn-success{% else %}btn-outline-success{% endif %} fw-bold">
+                <i class="fa-solid fa-check-double me-1"></i> صدر بها قرار جمهوري
+            </a>
+            <a href="?status=DRAFT" class="btn btn-sm {% if status_filter == 'DRAFT' %}btn-secondary{% else %}btn-outline-secondary{% endif %} fw-bold">
+                مسودات
+            </a>
+        </div>
+    </div>
+
+    <!-- Nominations Table -->
+    <div class="card card-custom p-4 border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%;">اسم المرشح والرتبة</th>
+                        <th style="width: 22%;">المنصب / الصفة بمجلس الإدارة</th>
+                        <th style="width: 18%;">المؤسسة الحالية والتخصص</th>
+                        <th style="width: 15%;">موقف الترشيح</th>
+                        <th style="width: 10%;">المذكرة / القرار</th>
+                        <th style="width: 10%;" class="text-center">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nom in nominations %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark fs-6">{{ nom.nominee_name }}</div>
+                            <small class="text-primary fw-bold">{{ nom.academic_rank }}</small>
+                            <div class="text-muted small mt-1">
+                                <i class="fa-solid fa-calendar me-1"></i> ترشيح: {{ nom.nomination_date }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border p-2 text-wrap text-start lh-base">
+                                <i class="fa-solid fa-id-badge text-warning me-1"></i> {{ nom.get_proposed_position_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-secondary">{{ nom.current_institution }}</div>
+                            <small class="text-muted">{{ nom.specialization }}</small>
+                        </td>
+                        <td>
+                            {% if nom.status == 'SUBMITTED_TO_PM' %}
+                            <span class="badge bg-warning text-dark fs-6 py-2 px-3">
+                                <i class="fa-solid fa-paper-plane me-1"></i> مرفوع لرئيس الوزراء
+                            </span>
+                            {% elif nom.status == 'DECREE_ISSUED' %}
+                            <span class="badge bg-success fs-6 py-2 px-3">
+                                <i class="fa-solid fa-scroll me-1"></i> صدر قرار جمهوري
+                            </span>
+                            {% elif nom.status == 'DRAFT' %}
+                            <span class="badge bg-secondary py-2 px-3">مسودة ترشيح</span>
+                            {% else %}
+                            <span class="badge bg-danger py-2 px-3">غير معتمد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if nom.republican_decree_number %}
+                            <div class="fw-bold text-success font-monospace">{{ nom.republican_decree_number }}</div>
+                            {% if nom.decree_date %}<small class="text-muted">{{ nom.decree_date }}</small>{% endif %}
+                            {% if nom.decree_document %}
+                            <div class="mt-1">
+                                <a href="{{ nom.decree_document.url }}" target="_blank" class="badge bg-success text-decoration-none">
+                                    <i class="fa-solid fa-file-pdf me-1"></i> القرار الجمهوري
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% elif nom.nomination_letter_ref %}
+                            <div class="text-muted font-monospace small">مذكرة: {{ nom.nomination_letter_ref }}</div>
+                            {% if nom.nomination_document %}
+                            <div class="mt-1">
+                                <a href="{{ nom.nomination_document.url }}" target="_blank" class="badge bg-primary text-decoration-none">
+                                    <i class="fa-solid fa-paperclip me-1"></i> مذكرة الترشيح
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted small">قيد الإجراء</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                {% if user.role == 'PRIME_MINISTER' or user.is_prime_minister or user.is_superuser %}
+                                <button type="button" class="btn btn-sm btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#pmDecreeModal{{ nom.pk }}" title="اعتماد دولة رئيس الوزراء والقرار الجمهوري">
+                                    <i class="fa-solid fa-stamp me-1"></i> اعتماد رئيس الوزراء
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editNominationModal{{ nom.pk }}" title="تحديث القرار والموقف">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i> تعديل
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Edit/Update Status Modal for this nomination -->
+                    <div class="modal fade" id="editNominationModal{{ nom.pk }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <form method="POST" action="{% url 'decisions:minister_nomination_update' nom.pk %}">
+                                    {% csrf_token %}
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title fw-bold">
+                                            <i class="fa-solid fa-scroll me-1"></i> تحديث موقف ترشيح: {{ nom.nominee_name }}
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-4">
+                                        <div class="alert alert-light border mb-3 small">
+                                            <strong>المنصب المرشح له:</strong> {{ nom.get_proposed_position_display }} • <strong>المؤسسة:</strong> {{ nom.current_institution }}
+                                        </div>
+
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">موقف الترشيح الحالي:</label>
+                                                <select name="status" class="form-select">
+                                                    {% for code, label in status_choices %}
+                                                    <option value="{{ code }}" {% if nom.status == code %}selected{% endif %}>{{ label }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">رقم مذكرة الرفع لرئيس الوزراء:</label>
+                                                <input type="text" name="nomination_letter_ref" class="form-control font-monospace" value="{{ nom.nomination_letter_ref }}">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold text-success">رقم القرار الجمهوري / قرار التعيين:</label>
+                                                <input type="text" name="republican_decree_number" class="form-control font-monospace" value="{{ nom.republican_decree_number }}" placeholder="مثال: قرار جمهوري رقم (14) لسنة 2026">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">تاريخ صدور القرار الجمهوري:</label>
+                                                <input type="date" name="decree_date" class="form-control" value="{{ nom.decree_date|date:'Y-m-d' }}">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold">توجيهات وملاحظات معالي الوزير:</label>
+                                                <textarea name="minister_notes" class="form-control" rows="3">{{ nom.minister_notes }}</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                        <button type="submit" class="btn btn-primary fw-bold px-4">
+                                            <i class="fa-solid fa-save me-1"></i> حفظ التحديثات
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prime Minister Sovereign Decree Modal -->
+                    <div class="modal fade" id="pmDecreeModal{{ nom.pk }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <form method="POST" action="{% url 'decisions:pm_nomination_decree' nom.pk %}" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="modal-header bg-success text-white">
+                                        <h5 class="modal-title fw-bold">
+                                            <i class="fa-solid fa-landmark me-2"></i> اعتماد دولة رئيس مجلس الوزراء وإصدار القرار الجمهوري
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-4">
+                                        <div class="alert alert-success bg-opacity-10 border-success mb-3">
+                                            <h6 class="fw-bold mb-1"><i class="fa-solid fa-shield-halved me-1"></i> الصلاحية السيادية لدولة رئيس مجلس الوزراء (القرار الجمهوري 210 لسنة 2009)</h6>
+                                            <p class="small mb-0">اعتماد ترشيح <strong>{{ nom.nominee_name }}</strong> لمنصب <strong>{{ nom.get_proposed_position_display }}</strong> والرفع لفخامة رئيس الجمهورية لإصدار القرار الجمهوري بالتعيين ونشره في الجريدة الرسمية.</p>
+                                        </div>
+
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">نوع الإجراء السيادي:</label>
+                                                <select name="action_type" class="form-select fw-bold">
+                                                    <option value="issue_decree" selected>اعتماد وإصدار القرار الجمهوري بالتعيين</option>
+                                                    <option value="return_completion">إعادة إلى معالي الوزير لاستيفاء المسوغات</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold text-success">رقم القرار الجمهوري الصادر:</label>
+                                                <input type="text" name="republican_decree_number" class="form-control font-monospace fw-bold" value="{{ nom.republican_decree_number }}" placeholder="مثال: قرار جمهوري رقم (18) لسنة 2026">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">تاريخ صدور القرار الجمهوري:</label>
+                                                <input type="date" name="decree_date" class="form-control" value="{{ nom.decree_date|date:'Y-m-d' }}">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">مدة التعيين القانونية (بالسنوات):</label>
+                                                <input type="number" name="term_years" class="form-control" value="4" min="1" max="10">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold"><i class="fa-solid fa-file-pdf text-danger me-1"></i> وثيقة القرار الجمهوري المعتمد (PDF):</label>
+                                                <input type="file" name="decree_document" class="form-control" accept=".pdf,.doc,.docx">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold">توجيهات واعتماد دولة رئيس مجلس الوزراء:</label>
+                                                <textarea name="pm_notes" class="form-control" rows="3" placeholder="ملاحظات وتوجيهات دولة رئيس الوزراء لديوان الوزارة ومجلس الاعتماد...">{{ nom.pm_notes }}</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                        <button type="submit" class="btn btn-success fw-bold px-4">
+                                            <i class="fa-solid fa-stamp me-1"></i> اعتماد وحفظ الإجراء السيادي
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-user-xmark display-4 mb-2 text-secondary"></i>
+                            <div>لم يتم العثور على أي ترشيحات مطابقة للفئة المحددة.</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: New Nomination Form -->
+<div class="modal fade" id="newNominationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'decisions:minister_nomination_create' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header bg-dark text-white" style="background: linear-gradient(135deg, #0b412e 0%, #0f1e2f 100%) !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-landmark-dome text-warning fs-4"></i>
+                        <h5 class="modal-title fw-bold text-white mb-0">استمارة ترشيح لقيادة/عضوية مجلس إدارة الاعتماد الأكاديمي</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        تُرفع الترشيحات رسمياً بموجب هذه الاستمارة من معالي وزير التعليم العالي إلى دولة رئيس مجلس الوزراء لاستصدار القرار الجمهوري بالتعيين.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">اسم المرشح الرباعي واللقب: <span class="text-danger">*</span></label>
+                            <input type="text" name="nominee_name" class="form-control" placeholder="مثال: أ.د. عبدالكريم محمد الضلعي" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">الرتبة العلمية:</label>
+                            <input type="text" name="academic_rank" class="form-control" value="أستاذ دكتور (بروفيسور)">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-primary">المنصب / الصفة المرشح لها: <span class="text-danger">*</span></label>
+                            <select name="proposed_position" class="form-select" required>
+                                {% for code, label in position_choices %}
+                                <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">التخصص العلمي الدقيق: <span class="text-danger">*</span></label>
+                            <input type="text" name="specialization" class="form-control" placeholder="مثال: ضمان جودة التعليم الطبي، تقنية المعلومات..." required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">المؤسسة / جهة العمل الحالية: <span class="text-danger">*</span></label>
+                            <input type="text" name="current_institution" class="form-control" placeholder="مثال: جامعة صنعاء - كلية الطب" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">رقم مذكرة الرفع لرئيس الوزراء:</label>
+                            <input type="text" name="nomination_letter_ref" class="form-control font-monospace" placeholder="مثال: و ت ع / 2026 / 88">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-file-pdf text-danger me-1"></i> وثيقة ومذكرة الترشيح الرسمية (PDF):</label>
+                            <input type="file" name="nomination_document" class="form-control" accept=".pdf,.doc,.docx">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">نبذة عن السيرة الذاتية ومسوغات الترشيح: <span class="text-danger">*</span></label>
+                            <textarea name="cv_summary" class="form-control" rows="3" placeholder="أهم المناصب الأكاديمية والخبرات في مجال الجودة والاعتماد..." required></textarea>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">حالة الترشيح:</label>
+                            <select name="status" class="form-select">
+                                <option value="SUBMITTED_TO_PM" selected>مرفوع لدولة رئيس الوزراء</option>
+                                <option value="DRAFT">مسودة ترشيح</option>
+                                <option value="DECREE_ISSUED">صدر به قرار جمهوري</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">رقم القرار الجمهوري (إن صدر):</label>
+                            <input type="text" name="republican_decree_number" class="form-control font-monospace" placeholder="قرار جمهوري رقم ...">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">توجيهات وملاحظات معالي الوزير:</label>
+                            <textarea name="minister_notes" class="form-control" rows="2" placeholder="ملاحظات وتوصيات خاصة بمعالي الوزير..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning btn-lg fw-bold px-4">
+                        <i class="fa-solid fa-paper-plane me-1"></i> توثيق ورفع ملف الترشيح
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

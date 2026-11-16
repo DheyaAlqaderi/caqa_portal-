@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %}دراسة واتخاذ قرار المجلس | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Top breadcrumb & Actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'accreditation:board_applications_list' %}" class="text-decoration-none">طلبات الاعتماد</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">دراسة ومراجعة الطلب {{ app.application_number }}</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-gavel text-success me-2"></i>
+                جلسة دراسة ومراجعة طلب الاعتماد الأكاديمي
+            </h3>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'accreditation:application_report' app.pk %}" target="_blank" class="btn btn-outline-success fw-bold">
+                <i class="fa-solid fa-file-invoice me-1"></i> استعراض تقرير الطلب الرسمي (Dossier)
+            </a>
+            <a href="{% url 'accreditation:board_applications_list' %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-right me-1"></i> العودة للقائمة
+            </a>
+            <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-primary">
+                <i class="fa-solid fa-file-lines me-1"></i> صفحة ملف الطلب
+            </a>
+        </div>
+    </div>
+
+    <!-- Presidential Endorsement Alert Card -->
+    {% if app.president_endorsed %}
+    <div class="alert alert-success d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 shadow-sm border-0" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+        <div class="d-flex align-items-center">
+            <div class="bg-success text-white p-3 rounded-circle me-3 fs-4 shadow-sm">
+                <i class="fa-solid fa-signature"></i>
+            </div>
+            <div>
+                <h6 class="fw-bold text-success mb-1">
+                    <i class="fa-solid fa-circle-check me-1"></i>
+                    تقرير الطلب معتمد وموقّع رسمياً من قِبل رئيس الجامعة / المفوض القانوني
+                </h6>
+                <div class="small text-dark">
+                    الموقع المعتمد: <strong>{{ app.president_endorsed_by.get_full_name|default:app.president_endorsed_by.username }}</strong> • 
+                    تاريخ التوقيع: <strong>{{ app.president_endorsed_at|date:"Y-m-d H:i" }}</strong> • 
+                    قرار التفويض / المرجع: <strong class="font-monospace text-primary">{{ app.president_decree_ref|default:"اعتماد رئاسي مباشر" }}</strong>
+                </div>
+            </div>
+        </div>
+        <span class="badge bg-success fs-6 px-3 py-2 shadow-sm"><i class="fa-solid fa-check-double me-1"></i> جاهز لدراسة التكلفة والقبول</span>
+    </div>
+    {% else %}
+    <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 shadow-sm border-0" style="background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);">
+        <div class="d-flex align-items-center">
+            <div class="bg-warning text-dark p-3 rounded-circle me-3 fs-4 shadow-sm">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h6 class="fw-bold text-dark mb-1">
+                    تنبيه أمانة المجلس: الطلب بانتظار توقيع واعتماد رئيس الجامعة
+                </h6>
+                <div class="small text-secondary">
+                    تم إشعار رئيس الجامعة للدخول والتوقيع الرقمي على تقرير الطلب. يمكن لمدير عام الاعتماد والتراخيص مراجعة البيانات المرفوعة تمهيداً لاتخاذ القرار.
+                </div>
+            </div>
+        </div>
+        <span class="badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm"><i class="fa-solid fa-hourglass-half me-1"></i> بانتظار توقيع رئيس الجامعة</span>
+    </div>
+    {% endif %}
+
+    <!-- Alert Status -->
+    <div class="card card-custom p-3 mb-4 {% if app.status == 'PENDING_REVIEW' %}border-start border-warning border-4 bg-warning bg-opacity-10{% elif app.status == 'REJECTED' %}border-start border-danger border-4 bg-danger bg-opacity-10{% else %}border-start border-success border-4 bg-success bg-opacity-10{% endif %}">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span class="fw-bold fs-5">حالة الطلب الحالية: </span>
+                <span class="badge {% if app.status == 'PENDING_REVIEW' %}bg-warning text-dark{% elif app.status == 'REJECTED' %}bg-danger{% else %}bg-success{% endif %} fs-6">
+                    {{ app.get_status_display }}
+                </span>
+            </div>
+            {% if app.cost_amount %}
+            <div>
+                <span class="text-muted fw-bold">التكلفة المالية المعتمدة:</span>
+                <span class="fw-bold text-success fs-5">{{ app.cost_amount|floatformat:2 }} {{ app.cost_currency }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Application Details & Verification -->
+        <div class="col-lg-7">
+            <!-- Institution & Program Card -->
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="fa-solid fa-building-columns text-primary me-2"></i>
+                    بيانات المؤسسة والبرنامج الأكاديمي
+                </h5>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small fw-bold">اسم المؤسسة:</label>
+                        <div class="fw-bold fs-6">{{ app.institution.name }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small fw-bold">نوع المؤسسة والمدينة:</label>
+                        <div>{{ app.institution.get_institution_type_display|default:"جامعة" }} - {{ app.institution.city|default:"صنعاء" }}</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted small fw-bold">مسار الاعتماد:</label>
+                        <div><span class="badge bg-secondary">{{ app.get_track_display }}</span></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small fw-bold">البرنامج المستهدف (إن وجد):</label>
+                        <div class="fw-bold text-primary">{{ app.program.name|default:"اعتماد مؤسسي شامل" }}</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted small fw-bold">إصدار المعايير المعتمد:</label>
+                        <div>{{ app.standard_version.title|default:"الإصدار الوطني الأول" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small fw-bold">رقم قرار إنشاء / ترخيص المؤسسة:</label>
+                        <div class="font-monospace fw-bold">
+                            {% if app.establishment_decree_number %}
+                                {{ app.establishment_decree_number }}
+                            {% elif app.institution.decree_number %}
+                                {{ app.institution.decree_number }}
+                            {% else %}
+                                غير مسجل
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if app.initial_license_document %}
+                <div class="mt-3 p-3 bg-light rounded border">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fa-solid fa-file-pdf text-danger fs-4 me-2"></i>
+                            <span class="fw-bold">وثيقة الترخيص / قرار الإنشاء المرفق:</span>
+                        </div>
+                        <a href="{{ app.initial_license_document.url }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                            <i class="fa-solid fa-download me-1"></i> تحميل الوثيقة
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Contact & Submission Info -->
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="fa-solid fa-address-card text-info me-2"></i>
+                    بيانات ضابط الاتصال والتقديم
+                </h5>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="text-muted small fw-bold">ضابط الاتصال:</label>
+                        <div class="fw-semibold">{{ app.contact_person_name|default:app.applicant_user.get_full_name|default:app.applicant_user.username }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small fw-bold">البريد الإلكتروني:</label>
+                        <div class="fw-semibold">{{ app.contact_email|default:app.applicant_user.email }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small fw-bold">رقم الهاتف / الواتساب:</label>
+                        <div class="fw-semibold font-monospace">{{ app.contact_phone|default:"غير محدد" }}</div>
+                    </div>
+                </div>
+
+                {% if app.notes %}
+                <div class="mt-3">
+                    <label class="text-muted small fw-bold">ملاحظات المؤسسة عند التقديم:</label>
+                    <div class="p-3 bg-light rounded text-secondary">{{ app.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Application History -->
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="fa-solid fa-timeline text-secondary me-2"></i>
+                    سجل حركات وتدرج الطلب
+                </h5>
+                <div class="timeline">
+                    {% for h in history %}
+                    <div class="border-start border-3 border-success ps-3 pb-3 mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold text-dark">{{ h.get_to_status_display }}</span>
+                            <small class="text-muted">{{ h.created_at|date:"Y-m-d H:i" }}</small>
+                        </div>
+                        <div class="small text-muted">بواسطة: {{ h.changed_by.get_full_name|default:h.changed_by.username|default:"النظام" }}</div>
+                        {% if h.reason %}
+                        <div class="small text-secondary mt-1 bg-light p-2 rounded">{{ h.reason }}</div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small mb-0">لا توجد حركات سابقة مسجلة.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Decision Actions (Accept with Cost / Reject with Mandatory Reason) -->
+        <div class="col-lg-5">
+            <!-- ACCEPTANCE FORM -->
+            <div class="card card-custom p-4 mb-4 border-top border-success border-4 shadow-sm">
+                <h5 class="fw-bold text-success mb-2">
+                    <i class="fa-solid fa-circle-check me-2"></i>
+                    الموافقة على الطلب وتحديد التكلفة وطلب التقييم الذاتي
+                </h5>
+                <p class="text-muted small">عند الموافقة على الطلب، يُلزم النظام مدير عام الاعتماد بتحديد تكلفة دراسة الاعتماد وتوجيهات المجلس، ويتم إصدار فاتورة الرسوم تلقائياً وإشعار رئيس الجامعة ومسؤول الجودة لبدء استكمال التقييم الذاتي.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="accept_application">
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold">التكلفة المالية المعتمدة: <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="cost_amount" value="{{ app.cost_amount|default:'' }}" class="form-control fw-bold" placeholder="مثال: 5000000" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">العملة:</label>
+                            <select name="cost_currency" class="form-select">
+                                <option value="YER" {% if app.cost_currency == 'YER' %}selected{% endif %}>ريال يمني (YER)</option>
+                                <option value="USD" {% if app.cost_currency == 'USD' %}selected{% endif %}>دولار أمريكي (USD)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">تفاصيل بنود التكلفة وملاحظاتها:</label>
+                        <textarea name="cost_breakdown_notes" rows="3" class="form-control" placeholder="مثال: رسوم فحص مكتبي، بدل جلسات ومحكمين، بدل زيارات ميدانية...">{{ app.cost_breakdown_notes|default:'' }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ملاحظات وتوجيهات بدء التقييم الذاتي للمؤسسة:</label>
+                        <textarea name="council_approval_notes" rows="2" class="form-control" placeholder="توجيهات للمؤسسة حول إعداد دراسة التقييم الذاتي والفترة الزمنية المحددة...">{{ app.council_approval_notes|default:'' }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold" onclick="return confirm('هل أنت متأكد من اعتماد قرار قبول هذا الطلب وتحديد التكلفة المالية وتوجيه المؤسسة لبدء التقييم الذاتي؟');">
+                        <i class="fa-solid fa-file-invoice-dollar me-1"></i> الموافقة وتحديد التكلفة وتفعيل التقييم الذاتي
+                    </button>
+                </form>
+            </div>
+
+            <!-- REJECTION FORM -->
+            <div class="card card-custom p-4 border-top border-danger border-4 shadow-sm">
+                <h5 class="fw-bold text-danger mb-2">
+                    <i class="fa-solid fa-circle-xmark me-2"></i>
+                    رفض وتعديل وإعادة الطلب (مع تقرير أسباب إلزامي)
+                </h5>
+                <p class="text-muted small">وفقاً للوائح المجلس، في حال عدم استيفاء الشروط أو وجود نواقص، يتم إصدار تقرير رسمي بسبب عدم القبول، ويُشعر رئيس الجامعة ومسؤول المؤسسة لتعديل الطلب وإعادة إرساله.</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reject_application">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">أسباب ومبررات الرفض وملاحظات التعديل المطلوبة: <span class="text-danger">*</span></label>
+                        <textarea name="rejection_reason" rows="4" class="form-control" placeholder="بيان النواقص أو عدم استيفاء الشروط القانونية وتفاصيل ما يلزم تعديله لإعادة التقديم..." required>{{ app.rejection_reason|default:'' }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-danger w-100 py-2 fw-bold" onclick="return confirm('تنبيه: هل أنت متأكد من قرار رفض الطلب؟ سيتم إرسال تقرير أسباب عدم القبول لرئيس الجامعة ومسؤول المؤسسة لطلب التعديل وإعادة الإرسال.');">
+                        <i class="fa-solid fa-ban me-1"></i> اعتماد الرفض وإرسال تقرير التعديل وإعادة الطلب
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

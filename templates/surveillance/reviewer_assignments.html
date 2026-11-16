@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}مهام وتكليفات الزيارات الاستطلاعية | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-warning text-dark mb-1">بوابة المحكم الخارجي</span>
+        <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-clipboard-user text-warning me-2"></i> مهام الزيارات الاستطلاعية والمتابعة الميدانية</h3>
+        <p class="text-muted mb-0">قائمة المهام والزيارات الميدانية الرسمية المكلف بها للتحقق من خطط التحسين المستمر للمؤسسات</p>
+    </div>
+</div>
+
+<div class="card card-custom p-4">
+    {% if assigned_visits %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>المؤسسة / البرنامج</th>
+                    <th>نوع الزيارة</th>
+                    <th>تاريخ الزيارة</th>
+                    <th>إقرار النزاهة والحياد</th>
+                    <th>حالة التكليف</th>
+                    <th class="text-center">الإجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in assigned_visits %}
+                <tr>
+                    <td>
+                        <div class="fw-bold">{{ v.decision.application.institution.name }}</div>
+                        {% if v.decision.application.program %}
+                        <small class="text-muted">{{ v.decision.application.program.name }}</small>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-light text-dark border">{{ v.get_visit_type_display }}</span></td>
+                    <td>{{ v.visit_date|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if request.user in v.coi_declared_by.all %}
+                        <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> تم توقيع الإقرار</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i> مطلوب التوقيع</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if v.status == 'REPORT_SUBMITTED' or v.status == 'COMPLETED' %}bg-success
+                            {% elif v.status == 'IN_PROGRESS' %}bg-info text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ v.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url 'surveillance:reviewer_visit_detail' v.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-folder-open me-1"></i> فتح ملف الزيارة
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fa-solid fa-calendar-check fa-3x text-muted mb-3"></i>
+        <h5 class="fw-bold text-dark">لا توجد مهام زيارات استطلاعية مكلف بها حالياً</h5>
+        <p class="text-muted small">عند صدور أي تكليف رسمي لكم من الأمانة العامة للمجلس، ستظهر تفاصيل المهمة والوثائق المرتبطة هنا مباشرة.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

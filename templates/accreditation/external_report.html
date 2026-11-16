@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير المراجعة الخارجية والردود | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-secondary mb-1">المرحلة 5: إعداد التقرير وحق الرد</span>
+        <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-file-contract text-secondary me-2"></i> تقرير المراجعة الخارجية وحق الرد القانوني للمؤسسة</h4>
+        <small class="text-muted">الطلب رقم: {{ app.application_number }} - {{ app.institution.name }}</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'accounts:library_save_system_asset' %}?asset_type=external_report&app_id={{ app.pk }}" class="btn btn-warning fw-bold text-dark shadow-sm" title="حفظ وتثبيت تقرير التقييم الخارجي في مكتبتي الخاصة">
+            <i class="fa-solid fa-bookmark me-1"></i> حفظ التقرير الخارجي في مكتبتي
+        </a>
+        {% if user.role in 'DG_EVALUATION,COUNCIL_SECRETARY_GENERAL,COUNCIL_SECRETARY,ADMIN' or user.is_superuser or is_council %}
+        <a href="{% url 'accreditation:secretariat_comparison_dashboard' app.pk %}" class="btn btn-success fw-bold shadow-sm">
+            <i class="fa-solid fa-code-compare me-1"></i> الانتقال إلى لوحة المقارنة التحليلية مع الشواهد وإرسالها للمجلس
+        </a>
+        {% endif %}
+        <a href="{% url 'accreditation:self_study_report_view' app.pk %}" class="btn btn-outline-primary fw-bold">
+            <i class="fa-solid fa-file-contract me-1"></i> تقرير التقييم الذاتي (SSR)
+        </a>
+        <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة للملف
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Sub-step 1: Draft / Modification Report by Peer Reviewers to Institution -->
+    <div class="col-lg-12">
+        <div class="card card-custom p-4 mb-3 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-file-lines me-2"></i> أولاً: تقرير الملاحظات وطلب التعديل ومسودة المراجعة الخارجية (من المقيم الخارجي إلى المؤسسة)</h5>
+                {% if report.draft_sent_to_institution_date %}
+                <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> أُرسل للمؤسسة بتاريخ {{ report.draft_sent_to_institution_date|date:"Y-m-d" }}</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">قيد الصياغة</span>
+                {% endif %}
+            </div>
+
+            {% if is_reviewer %}
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_draft">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">الملخص التنفيذي لتقرير الملاحظات ومسودة التقييم:</label>
+                    <textarea name="draft_executive_summary" class="form-control" rows="4" required>{{ report.draft_executive_summary }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">ملاحظات المقيم الخارجي، التعديلات المطلوبة في التقييم الذاتي، ونتائج المعايير:</label>
+                    <textarea name="draft_findings_per_standard" class="form-control" rows="5" required>{{ report.draft_findings_per_standard }}</textarea>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="fa-solid fa-paper-plane me-1"></i> إرسال تقرير الملاحظات وطلب تعديل التقييم الذاتي للمؤسسة (وفتح التقييم الذاتي للتعديل)
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <!-- Read-Only View for Institution & others -->
+            <div class="bg-light p-3 rounded mb-3">
+                <div class="fw-bold mb-1">الملخص التنفيذي لتقرير الملاحظات والمسودة:</div>
+                <div class="text-muted mb-3">{{ report.draft_executive_summary|linebreaksbr }}</div>
+                
+                <div class="fw-bold mb-1">ملاحظات المقيم الخارجي والتعديلات المطلوبة في التقييم الذاتي:</div>
+                <div class="text-muted">{{ report.draft_findings_per_standard|linebreaksbr }}</div>
+            </div>
+            {% if is_institution or user.role == 'UNIVERSITY_PRESIDENT' %}
+            <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0">
+                <div>
+                    <i class="fa-solid fa-pen-to-square me-1"></i>
+                    <strong>لتعديل التقييم الذاتي استجابةً لتقرير وملاحظات المقيم الخارجي أعلاه:</strong> يمكنك الانتقال مباشرة لتعديل التقييم الذاتي وحفظ النسخة المعدلة بجانب النسخة الأصلية.
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'accreditation:self_study_indicators_edit' app.pk %}" class="btn btn-primary fw-bold shadow-sm">
+                        <i class="fa-solid fa-list-check me-1"></i> تعديل مؤشرات التقييم الذاتي وإعادة الإرسال
+                    </a>
+                    <a href="{% url 'accreditation:self_study_edit' app.pk %}" class="btn btn-outline-primary fw-bold">
+                        <i class="fa-solid fa-file-pen me-1"></i> تعديل ملخص التقييم الذاتي
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sub-step 2: Institution Right to Reply -->
+    <div class="col-lg-12">
+        <div class="card card-custom p-4 mb-3 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-reply text-warning me-2"></i> ثانياً: رد المؤسسة وإشعار تعديل التقييم الذاتي للمقيم الخارجي</h5>
+                {% if report.institution_reply_date %}
+                <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> تم تسليم رد المؤسسة بتاريخ {{ report.institution_reply_date|date:"Y-m-d" }}</span>
+                {% else %}
+                <span class="badge bg-secondary">بانتظار إفادة المؤسسة</span>
+                {% endif %}
+            </div>
+
+            <p class="text-muted small">
+                يُتاح للمؤسسة تدوين ردها الرسمي وما تم تعديله في التقييم الذاتي بناءً على تقرير ملاحظات المقيم الخارجي، وإرساله مباشرة للجنة التقييم ومدير عام التقييم والمراجعة الخارجية.
+            </p>
+
+            {% if is_institution or user.role == 'UNIVERSITY_PRESIDENT' %}
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="submit_institution_reply">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">توضيحات المؤسسة وبيان التعديلات المنفذة في التقييم الذاتي:</label>
+                    <textarea name="institution_reply_text" class="form-control" rows="4" placeholder="سجل هنا توضيحات المؤسسة وما تم تعديله في التقييم الذاتي..." required>{{ report.institution_reply_text }}</textarea>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> حفظ وإرسال رد المؤسسة والتقييم الذاتي المعدل للمقيم الخارجي ومدير عام التقييم
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <!-- Read-Only View of Institution Reply for Reviewers/Council -->
+            <div class="bg-light p-3 rounded">
+                <div class="fw-bold mb-1">رد وإيضاحات المؤسسة:</div>
+                <div class="text-muted">{{ report.institution_reply_text|default:'لم تقدم المؤسسة أي ردود بعد.'|linebreaksbr }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sub-step 3: Final Report & Submission to DG Evaluation & Council -->
+    <div class="col-lg-12">
+        <div class="card card-custom p-4 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-success"><i class="fa-solid fa-award me-2"></i> ثالثاً: حفظ وإرسال تقرير التقييم الخارجي النهائي إلى مدير عام التقييم والمراجعة الخارجية</h5>
+                {% if report.final_submitted_to_council_date %}
+                <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> تم الإرسال لمدير عام التقييم بتاريخ {{ report.final_submitted_to_council_date|date:"Y-m-d" }}</span>
+                {% else %}
+                <span class="badge bg-secondary">بانتظار الاعتماد والإرسال لمدير عام التقييم</span>
+                {% endif %}
+            </div>
+
+            {% if is_reviewer %}
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="finalize_report">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">موقف المقيم الخارجي حيال رد وتعديلات المؤسسة:</label>
+                    <textarea name="team_response_to_reply" class="form-control" rows="3" placeholder="توضيح ما تم قبوله أو تعديله بناء على رد المؤسسة والتقييم الذاتي المعدل...">{{ report.team_response_to_reply }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">نص تقرير التقييم الخارجي النهائي المعتمد:</label>
+                    <textarea name="final_report_text" class="form-control" rows="6" placeholder="الصيغة النهائية المكتملة لتقرير التقييم الخارجي المرسل لمدير عام التقييم والمراجعة الخارجية..." required>{{ report.final_report_text }}</textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">التوصية الختامية للمقيم الخارجي المرفوعة لمدير عام التقييم والمجلس:</label>
+                    <select name="final_recommendation" class="form-select form-select-lg" required>
+                        <option value="FULL_ACCREDITATION" {% if report.final_recommendation == 'FULL_ACCREDITATION' %}selected{% endif %}>
+                            منح الاعتماد الكامل (استيفاء المعايير بنسبة عالية - 5 سنوات)
+                        </option>
+                        <option value="CONDITIONAL_ACCREDITATION" {% if report.final_recommendation == 'CONDITIONAL_ACCREDITATION' %}selected{% endif %}>
+                            منح الاعتماد المشروط / المؤقت (مع خطة تصحيحية ومعالجة نقاط ضعف محددة)
+                        </option>
+                        <option value="POSTPONE_OR_DENY" {% if report.final_recommendation == 'POSTPONE_OR_DENY' %}selected{% endif %}>
+                            تأجيل أو رفض الاعتماد (لوجود قصور كبير في استيفاء المتطلبات الأساسية)
+                        </option>
+                    </select>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-success btn-lg fw-bold px-4" onclick="return confirm('هل أنت متأكد من حفظ وإرسال تقرير التقييم الخارجي النهائي رسمياً إلى مدير عام التقييم والمراجعة الخارجية وحفظه في مكتبته؟');">
+                        <i class="fa-solid fa-paper-plane me-1"></i> حفظ وإرسال التقييم الخارجي إلى مدير عام التقييم والمراجعة الخارجية
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <!-- Read-Only View of Final Report -->
+            <div class="bg-light p-3 rounded">
+                <div class="fw-bold text-dark mb-1">التوصية الختامية المرفوعة:</div>
+                <div class="mb-3"><span class="badge bg-primary fs-6">{{ report.get_final_recommendation_display }}</span></div>
+
+                <div class="fw-bold text-dark mb-1">موقف فريق التقييم من رد المؤسسة:</div>
+                <div class="text-muted mb-3">{{ report.team_response_to_reply|default:'لا توجد ردود مسجلة'|linebreaksbr }}</div>
+
+                <div class="fw-bold text-dark mb-1">نص التقرير النهائي:</div>
+                <div class="text-muted">{{ report.final_report_text|default:'قيد الإعداد من قبل فريق المحكمين'|linebreaksbr }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}سجل نشاط المستخدم والصلاحيات | {{ target_user.username }}{% endblock %}
+
+{% block content %}
+{% include 'accounts/includes/sysadmin_nav.html' %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-clock text-primary me-2"></i> سجل نشاط المستخدم وتفاصيل الصلاحيات: @{{ target_user.username }}</h3>
+        <small class="text-muted">{{ target_user.get_full_name }} — {{ target_user.get_role_display }} {% if target_user.institution %}({{ target_user.institution.name }}){% endif %}</small>
+    </div>
+    <a href="{% url 'accounts:admin_users_dashboard' %}" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-right me-1"></i> العودة لإدارة المستخدمين</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-5">
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">الصلاحيات الممنوحة بموجب الدور ({{ role_perms|length }})</h5>
+            <ul class="list-group list-group-flush small">
+                {% for rp in role_perms %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ rp.permission.name }}</span>
+                    <code>{{ rp.permission.codename }}</code>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-muted">لا توجد صلاحيات دور مسندة.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">سجل عمليات تسجيل الدخول والنشاط الأخير</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered small">
+                    <thead class="table-light">
+                        <tr><th>العملية</th><th>التفاصيل</th><th>عنوان IP</th><th>الوقت</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for l in login_logs %}
+                        <tr>
+                            <td><code>{{ l.action }}</code></td>
+                            <td>{{ l.details }}</td>
+                            <td class="font-monospace">{{ l.ip_address|default:"127.0.0.1" }}</td>
+                            <td class="font-monospace">{{ l.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% for a in activity_logs %}
+                        <tr>
+                            <td><code>{{ a.action }}</code></td>
+                            <td>{{ a.details|truncatechars:80 }}</td>
+                            <td class="font-monospace">{{ a.ip_address|default:"127.0.0.1" }}</td>
+                            <td class="font-monospace">{{ a.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

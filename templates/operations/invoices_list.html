@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}المطالبات والرسوم المالية للاعتماد{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i> المطالبات وإخلاء الطرف المالي لطلبات الاعتماد</h3>
+        <p class="text-muted mb-0">متابعة رسوم تقديم ومراجعة طلبات الاعتماد وإصدار سندات الإبراء وإخلاء الطرف المالي وفق اللوائح المعتمدة</p>
+    </div>
+    {% if can_manage_finance %}
+    <div>
+        <button type="button" class="btn btn-primary fw-bold px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#newInvoiceModal">
+            <i class="fa-solid fa-plus-circle me-1"></i> إصدار مطالبة مالية جديدة
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Filter Pills -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a href="{% url 'operations:invoices_list' %}" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+        الكل ({{ invoices|length }})
+    </a>
+    <a href="{% url 'operations:invoices_list' %}?status=UNPAID" class="btn btn-sm {% if status_filter == 'UNPAID' %}btn-warning text-dark fw-bold{% else %}btn-outline-warning text-dark{% endif %}">
+        <i class="fa-solid fa-clock me-1"></i> بانتظار السداد والتوريد
+    </a>
+    <a href="{% url 'operations:invoices_list' %}?status=PAID" class="btn btn-sm {% if status_filter == 'PAID' %}btn-success fw-bold{% else %}btn-outline-success{% endif %}">
+        <i class="fa-solid fa-circle-check me-1"></i> مسددة ومخلاة طرفاً (إبراء ذمة)
+    </a>
+    <a href="{% url 'operations:invoices_list' %}?status=EXEMPTED" class="btn btn-sm {% if status_filter == 'EXEMPTED' %}btn-info text-white fw-bold{% else %}btn-outline-info{% endif %}">
+        معفى بقرار رسمي
+    </a>
+</div>
+
+<div class="card card-custom p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>رقم المطالبة</th>
+                    <th>طلب الاعتماد</th>
+                    <th>المؤسسة</th>
+                    <th>بند الرسوم المعتمد</th>
+                    <th>المبلغ المطلوب</th>
+                    <th>حالة السداد</th>
+                    <th>تاريخ المطالبة</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td class="fw-bold font-monospace text-primary">{{ inv.invoice_number }}</td>
+                    <td>{{ inv.application.application_number }}</td>
+                    <td>{{ inv.application.institution.name }}</td>
+                    <td><small>{{ inv.fee_schedule.service_name }}</small></td>
+                    <td class="fw-bold font-monospace text-success">{{ inv.total_amount|floatformat:0 }} ر.ي</td>
+                    <td>
+                        {% if inv.status == 'PAID' %}
+                        <span class="badge bg-success"><i class="fa-solid fa-check-circle me-1"></i> مسدد بالكامل</span>
+                        {% elif inv.status == 'EXEMPTED' %}
+                        <span class="badge bg-info">معفى بقرار</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i> بانتظار السداد</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ inv.issued_at|date:"Y-m-d" }}</small></td>
+                    <td>
+                        <a href="{% url 'operations:invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-receipt me-1"></i> التفاصيل والتوريد
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">لا توجد مطالبات مالية مسجلة حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if can_manage_finance %}
+<!-- Modal: New Invoice Issue -->
+<div class="modal fade" id="newInvoiceModal" tabindex="-1" aria-labelledby="newInvoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'operations:invoice_create' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="newInvoiceModalLabel">
+                        <i class="fa-solid fa-file-invoice-dollar me-2"></i> إصدار مطالبة مالية رسمية جديدة
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="fa-solid fa-info-circle me-1"></i> يُصدر هذا السند عبر <strong>الإدارة العامة للشؤون المالية والإدارية</strong> ويرتبط بطلب اعتماد معتمد لإلزام المؤسسة بتوريد الرسوم المقررة قبل أو أثناء إجراءات التقييم.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">طلب الاعتماد والمؤسسة المستهدفة <span class="text-danger">*</span></label>
+                        <select name="application_id" class="form-select" required>
+                            <option value="">-- اختر طلب الاعتماد --</option>
+                            {% for app in applications %}
+                            <option value="{{ app.pk }}">
+                                [{{ app.application_number }}] {{ app.institution.name }} {% if app.program %}- {{ app.program.name }}{% endif %} ({{ app.get_track_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">بند الرسوم المعتمد قانوناً <span class="text-danger">*</span></label>
+                        <select name="fee_schedule_id" class="form-select" required id="feeScheduleSelect">
+                            <option value="">-- اختر بند الرسوم --</option>
+                            {% for fee in fee_schedules %}
+                            <option value="{{ fee.pk }}" data-amount="{{ fee.amount_yer }}">
+                                {{ fee.service_name }} ({{ fee.amount_yer|floatformat:0 }} ر.ي) - [{{ fee.regulatory_reference }}]
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">المبلغ المطلوب (ريال يمني)</label>
+                        <input type="number" step="0.01" name="custom_amount" id="customAmountInput" class="form-control" placeholder="اتركه فارغاً لاعتماد قيمة البند تلقائياً">
+                        <small class="text-muted">إذا تركت الحقل فارغاً، سيتم اعتماد المبلغ الافتراضي لبند الرسوم المحدد.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="fa-solid fa-stamp me-1"></i> اعتماد وإصدار المطالبة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById('feeScheduleSelect')?.addEventListener('change', function() {
+        var opt = this.options[this.selectedIndex];
+        var amount = opt.getAttribute('data-amount');
+        if (amount) {
+            document.getElementById('customAmountInput').value = amount;
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

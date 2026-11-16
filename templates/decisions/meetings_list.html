@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}سجل جلسات مجلس الإدارة وقرارات الاعتماد{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1"><i class="fa-solid fa-scale-balanced text-warning me-2"></i> سجل جلسات مجلس الإدارة وقرارات الاعتماد الأكاديمي</h3>
+        <p class="text-muted mb-0">المرحلة 6: القرارات الوزارية والمؤسسية الصادرة بمنح الاعتماد الكامل والمشروط</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can_create_meeting %}
+        <button type="button" class="btn btn-warning fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#newMeetingModal">
+            <i class="fa-solid fa-calendar-plus me-1"></i> إنشاء جلسة مجلس إدارة جديدة
+        </button>
+        {% endif %}
+        <a href="{% url 'decisions:sovereign_transactions_list' %}" class="btn btn-outline-primary fw-bold shadow-sm">
+            <i class="fa-solid fa-folder-tree me-1"></i> السجل العام للمعاملات والمذكرات السيادية
+        </a>
+        <a href="{% url 'decisions:minister_policies_list' %}" class="btn btn-primary fw-bold shadow-sm">
+            <i class="fa-solid fa-scroll me-1"></i> اللوائح والسياسات العامة للمجلس
+        </a>
+    </div>
+</div>
+
+<div class="card card-custom p-4">
+    {% if meetings %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>رقم الجلسة والنوع</th>
+                    <th>تاريخ الانعقاد</th>
+                    <th>رئيس الجلسة</th>
+                    <th>حالة الجلسة والنصاب</th>
+                    <th>عدد القرارات الصادرة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in meetings %}
+                <tr>
+                    <td>
+                        <a href="{% url 'decisions:meeting_detail' m.pk %}" class="fw-bold text-primary text-decoration-none">
+                            {{ m.meeting_number }}
+                        </a>
+                        <div>
+                            <span class="badge {% if m.meeting_type == 'ORDINARY' %}bg-primary{% else %}bg-danger{% endif %} text-white" style="font-size: 0.75rem;">
+                                {{ m.get_meeting_type_display }}
+                            </span>
+                        </div>
+                    </td>
+                    <td><small>{{ m.meeting_date }}</small></td>
+                    <td>{{ m.chairperson_name }}</td>
+                    <td>
+                        <span class="badge {% if m.status == 'MINUTES_RATIFIED' %}bg-success{% elif m.status == 'IN_SESSION' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ m.get_status_display }}
+                        </span>
+                        {% if m.is_quorum_met %}
+                        <span class="badge bg-success-subtle text-success border border-success ms-1"><i class="fa-solid fa-check me-1"></i>النصاب مكتمل</span>
+                        {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger ms-1"><i class="fa-solid fa-xmark me-1"></i>النصاب غير مكتمل</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-secondary">{{ m.decisions.count }} قرار</span></td>
+                    <td>
+                        <a href="{% url 'decisions:meeting_detail' m.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-eye me-1"></i> التفاصيل والاقتراع
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="fa-solid fa-scale-balanced display-4 mb-3 text-secondary"></i>
+        <h5>لا توجد جلسات مجلس إدارة مسجلة حالياً.</h5>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: New Council Meeting -->
+<div class="modal fade" id="newMeetingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'decisions:meeting_create' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-dark text-white" style="background: linear-gradient(135deg, #0b412e 0%, #0f1e2f 100%) !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-users-rectangle text-warning fs-4"></i>
+                        <h5 class="modal-title fw-bold text-white mb-0">إنشاء وتحديد موعد جلسة مجلس إدارة جديدة</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        وفقاً للمادة (8) من القرار الجمهوري رقم (210) لسنة 2009، يدعو رئيس المجلس لعقد اجتماعات دورية عادية، أو استثنائية كلما دعت الحاجة.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">رقم ومسمى الجلسة: <span class="text-muted small">(اتركه فارغاً للتوليد التلقائي)</span></label>
+                            <input type="text" name="meeting_number" class="form-control" placeholder="مثال: جلسة مجلس الإدارة رقم (05) لسنة 2026">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">نوع الدورة: <span class="text-danger">*</span></label>
+                            <select name="meeting_type" class="form-select" required>
+                                <option value="ORDINARY" selected>دورة عادية</option>
+                                <option value="EXTRAORDINARY">دورة استثنائية</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">تاريخ الانعقاد: <span class="text-danger">*</span></label>
+                            <input type="date" name="meeting_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">ساعة الانعقاد:</label>
+                            <input type="time" name="meeting_time" class="form-control" value="10:00">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">الحد الأدنى للنصاب (عضواً): <span class="text-danger">*</span></label>
+                            <input type="number" name="quorum_required" class="form-control" value="4" min="1" max="15" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">رئيس الجلسة: <span class="text-danger">*</span></label>
+                            <input type="text" name="chairperson_name" class="form-control" value="{{ request.user.get_full_name|default:'أ.د. رئيس المجلس' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">مقر الانعقاد:</label>
+                            <input type="text" name="location" class="form-control" value="المقر الرئيسي لمجلس الاعتماد الأكاديمي - صنعاء">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">رابط الاجتماع الافتراضي (Zoom / Teams - اختياري للاجتماع الهجين):</label>
+                            <input type="url" name="meeting_link" class="form-control font-monospace" placeholder="https://zoom.us/j/...">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">جدول الأعمال والموضوعات المعروضة للمداولة: <span class="text-danger">*</span></label>
+                            <textarea name="meeting_agenda" class="form-control" rows="4" placeholder="1. البت في طلبات الاعتماد الأكاديمي للمؤسسات المستكملة للزيارة الميدانية.
+2. النظر في تقارير لجنة فحص الطعون والتظلمات.
+3. مناقشة وإقرار مقترح اللائحة التنظيمية الجديدة." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning btn-lg fw-bold px-4 text-dark shadow-sm">
+                        <i class="fa-solid fa-save me-1"></i> حفظ مسودة الجلسة وتجهيزها
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

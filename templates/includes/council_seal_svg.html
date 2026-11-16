@@ -1,0 +1,65 @@
+<!-- Official CAQA Council Seal SVG Component -->
+<svg class="council-seal-svg" viewBox="0 0 160 160" width="{{ width|default:'130' }}" height="{{ height|default:'130' }}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sealGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf498" />
+      <stop offset="25%" stop-color="#d4af37" />
+      <stop offset="60%" stop-color="#b08316" />
+      <stop offset="100%" stop-color="#73540b" />
+    </linearGradient>
+    <radialGradient id="sealInner" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0e3d2f" />
+      <stop offset="70%" stop-color="#0b2b21" />
+      <stop offset="100%" stop-color="#061a14" />
+    </radialGradient>
+    <filter id="sealShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Toothed / Notched Certificate Border -->
+  <circle cx="80" cy="80" r="76" fill="url(#sealGold)" filter="url(#sealShadow)"/>
+  
+  <!-- Dashed Ring -->
+  <circle cx="80" cy="80" r="71" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.8"/>
+
+  <!-- Inner Dark Emerald Medallion -->
+  <circle cx="80" cy="80" r="66" fill="url(#sealInner)" stroke="url(#sealGold)" stroke-width="2.5"/>
+
+  <!-- Circular Text Path: Upper Arabic -->
+  <path id="textPathUpper" d="M 24,80 A 56,56 0 1,1 136,80" fill="none"/>
+  <text fill="#ffffff" font-family="'Cairo', sans-serif" font-weight="800" font-size="7.5" letter-spacing="0.2">
+    <textPath href="#textPathUpper" startOffset="50%" text-anchor="middle">
+      مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي
+    </textPath>
+  </text>
+
+  <!-- Circular Text Path: Lower English -->
+  <path id="textPathLower" d="M 136,80 A 56,56 0 0,1 24,80" fill="none"/>
+  <text fill="#f6d365" font-family="'Arial', sans-serif" font-weight="700" font-size="5.5" letter-spacing="0.6">
+    <textPath href="#textPathLower" startOffset="50%" text-anchor="middle">
+      • CAQA YEMEN • QUALITY & ACCREDITATION •
+    </textPath>
+  </text>
+
+  <!-- Inner Center Ring -->
+  <circle cx="80" cy="80" r="38" fill="none" stroke="url(#sealGold)" stroke-width="1.8"/>
+  <circle cx="80" cy="80" r="35" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- Center Quality Icon: Shield & Star of Excellence -->
+  <g transform="translate(80, 78)">
+    <!-- Small Laurel Wreath Left -->
+    <path d="M -22,-6 C -25,-1 -25,12 -12,20" fill="none" stroke="#f6d365" stroke-width="1.4" stroke-linecap="round"/>
+    <!-- Small Laurel Wreath Right -->
+    <path d="M 22,-6 C 25,-1 25,12 12,20" fill="none" stroke="#f6d365" stroke-width="1.4" stroke-linecap="round"/>
+    
+    <!-- Central Star of Quality -->
+    <polygon points="0,-16 4,-5 15,-5 6,2 9,13 0,7 -9,13 -6,2 -15,-5 -4,-5" fill="url(#sealGold)" stroke="#684a07" stroke-width="0.6"/>
+    
+    <!-- Verified Badge Ribbon -->
+    <rect x="-18" y="10" width="36" height="12" rx="3" fill="url(#sealGold)" stroke="#684a07" stroke-width="0.8"/>
+    <text x="0" y="19" text-anchor="middle" font-family="'Cairo', sans-serif" font-weight="900" font-size="7.5" fill="#0b2545">
+      مُعـتـمَـد
+    </text>
+  </g>
+</svg>

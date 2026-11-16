@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}برامج التدريب والتأهيل وضمان الجودة{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chalkboard-user text-primary me-2"></i> برامج التدريب وورش عمل ضمان الجودة</h3>
+        <p class="text-muted mb-0">الدورات التخصصية وورش تأهيل المقيمين الوطنيين ومسؤولي الجودة بالجامعات</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for prog in programs %}
+    <div class="col-lg-6">
+        <div class="card card-custom p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-primary">{{ prog.get_track_display|default:'عام للمؤسسات والبرامج' }}</span>
+                    <small class="text-muted"><i class="fa-solid fa-calendar me-1"></i> {{ prog.start_date }} إلى {{ prog.end_date }}</small>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">{{ prog.title }}</h5>
+                <p class="small text-muted mb-3"><i class="fa-solid fa-user-tie me-1"></i> المدرب / الخبير: <strong>{{ prog.trainer_name }}</strong></p>
+                <div class="p-2 bg-light rounded small mb-3">
+                    <div><i class="fa-solid fa-location-dot text-danger me-1"></i> <strong>المقر / القاعة:</strong> {{ prog.location_or_online }}</div>
+                    <div><i class="fa-solid fa-users text-primary me-1"></i> <strong>المستهدفون:</strong> {{ prog.target_audience }}</div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-auto">
+                {% if prog.materials_url %}
+                <a href="{{ prog.materials_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa-solid fa-file-pdf me-1"></i> الحقيبة التدريبية
+                </a>
+                {% else %}
+                <span class="text-muted small">الحقيبة متاحة للمسجلين</span>
+                {% endif %}
+
+                {% if prog.id in user_registrations %}
+                <button class="btn btn-sm btn-success fw-bold" disabled>
+                    <i class="fa-solid fa-check me-1"></i> تم تسجيلك في الدورة
+                </button>
+                {% else %}
+                <a href="{% url 'operations:training_register' prog.pk %}" class="btn btn-sm btn-primary fw-bold">
+                    <i class="fa-solid fa-user-plus me-1"></i> التسجيل في الورشة
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card card-custom p-5 text-center text-muted">
+            <i class="fa-solid fa-calendar-xmark display-4 mb-3"></i>
+            <h5>لا توجد برامج تدريبية مجدولة حالياً</h5>
+            <p>سيتم نشر الدورات التأهيلية الجديدة قريباً.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

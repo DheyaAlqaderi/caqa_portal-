@@ -1,0 +1,563 @@
+{% extends 'base.html' %}
+
+{% block title %}تسجيل الدخول | مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي{% endblock %}
+
+{% block content %}
+<div class="row g-4 my-3 justify-content-center align-items-start">
+    <!-- 1. نموذج تسجيل الدخول الرئيسي -->
+    <div class="col-lg-4 col-md-5">
+        <div class="card card-custom shadow-lg border-0 overflow-hidden sticky-top" style="top: 85px;">
+            <div class="p-4 text-center text-white" style="background: linear-gradient(135deg, #0b6848 0%, #0f1e2f 100%);">
+                <i class="fa-solid fa-award text-warning display-4 mb-2"></i>
+                <h4 class="fw-bold mb-1">تسجيل الدخول للبوابة الوطنية</h4>
+                <p class="text-white-50 small mb-0">مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي - اليمن</p>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="POST" action="{% url 'accounts:login' %}" id="loginMainForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold"><i class="fa-solid fa-user me-1 text-primary"></i> اسم المستخدم أو الرقم الوظيفي:</label>
+                        <input type="text" name="username" id="loginUsername" class="form-control form-control-lg fs-6" placeholder="أدخل اسم المستخدم" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold"><i class="fa-solid fa-lock me-1 text-primary"></i> كلمة المرور:</label>
+                        <input type="password" name="password" id="loginPassword" class="form-control form-control-lg fs-6" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold" style="background-color: #0b6848;">
+                            <i class="fa-solid fa-right-to-bracket me-2"></i> دخول النظام
+                        </button>
+                        <a href="{% url 'accounts:register' %}" class="btn btn-outline-secondary fw-bold mt-2">
+                            <i class="fa-solid fa-user-plus me-2 text-primary"></i> مستخدم جديد؟ إنشاء حساب وطلب انضمام
+                        </a>
+                    </div>
+                </form>
+
+                <div class="mt-3 text-center">
+                    <small class="text-muted d-block">
+                        <i class="fa-solid fa-lightbulb text-warning me-1"></i>
+                        اضغط على أي حساب في القائمة المقابلة لتعبئة بياناته تلقائياً
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- رابط وصول الجمهور والطلاب المباشر -->
+        <div class="card card-custom p-3 border-0 shadow-sm mt-3 text-center" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #a7f3d0 !important;">
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-1 text-success fw-bold">
+                <i class="fa-solid fa-graduation-cap fs-5"></i> هل تبحث عن الجامعات المعتمدة؟
+            </div>
+            <p class="small text-muted mb-2">
+                لا يتطلب تسجيل الدخول! يمكنك تصفح السجل الوطني العام والتحقق الفوري من صحة وسريان شهادات الاعتماد.
+            </p>
+            <div>
+                <a href="{% url 'public_registry' %}" class="btn btn-success btn-sm fw-bold px-3 rounded-pill shadow-sm" style="background-color: #0b6848;">
+                    <i class="fa-solid fa-certificate me-1"></i> تصفح السجل الوطني العام
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. لوحة الحسابات التجريبية للاختبار السريع لكافة مستهدفي النظام -->
+    <div class="col-lg-8 col-md-7">
+        <div class="card card-custom shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-flask-vial text-warning me-2"></i>
+                        حسابات تجريبية للاختبار السريع (كافة مستهدفي النظام)
+                    </h5>
+                    <small class="text-muted">اضغط على زر <strong>«تعبئة»</strong> لأي دور ليتم إدخال اسم المستخدم وكلمة المرور فوراً</small>
+                </div>
+                <span class="badge bg-success px-3 py-2 fs-6">27 حساباً مفعلاً</span>
+            </div>
+
+            <div class="card-body p-3">
+                <!-- شريط البحث السريع بين الحسابات -->
+                <div class="input-group mb-3">
+                    <span class="input-group-text bg-light"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" id="accountSearchInput" class="form-control" placeholder="ابحث بالاسم أو الدور أو الجهة (مثال: وزير، رئيس الوزراء، مالية، محكم، صنعاء، قانونية)..." onkeyup="filterDemoAccounts()">
+                    <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('accountSearchInput').value=''; filterDemoAccounts();">مسح</button>
+                </div>
+
+                <!-- حساب المشرف العام الأعلى البلاتيني (Master Admin) -->
+                <div class="alert alert-warning border-warning border-2 p-3 mb-3 shadow-sm rounded-3 demo-account-item">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <span class="badge bg-danger text-white mb-1"><i class="fa-solid fa-shield-halved me-1"></i> المشرف العام الأعلى للنظام (Master Root Admin)</span>
+                            <h6 class="fw-bold text-dark mb-1">م. نجيب يحيى (المشرف العام)</h6>
+                            <div class="small text-muted">
+                                اسم المستخدم: <code class="fw-bold fs-6 text-dark px-2 py-0 bg-white border rounded">najeebADMIN</code>
+                                | كلمة المرور: <code class="fw-bold fs-6 text-danger px-2 py-0 bg-white border rounded">776678620</code>
+                            </div>
+                            <small class="text-secondary d-block mt-1">صلاحيات كاملة 100% لكافة الموديولات والتقارير والإشعارات والتشخيص وسجل التدقيق الرقابي.</small>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-warning fw-bold px-3 shadow-sm" onclick="fillQuickAccount('najeebADMIN', '776678620')">
+                                <i class="fa-solid fa-bolt me-1"></i> تعبئة وتجربة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تنبيه كلمة المرور الموحدة لباقي الحسابات -->
+                <div class="alert alert-info py-2 px-3 small d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <i class="fa-solid fa-key text-primary me-1"></i>
+                        كلمة المرور الموحدة لكافة الحسابات الـ 26 أدناه: <strong class="badge bg-primary fs-6">password123</strong>
+                    </div>
+                    <span class="text-muted small">مجهزة بكافة البيانات والسيناريوهات المعتمدة</span>
+                </div>
+
+                <!-- تصنيفات الحسابات (Accordion) -->
+                <div class="accordion" id="accountsAccordion" style="max-height: 580px; overflow-y: auto;">
+
+                    <!-- 1. القيادة السيادية ومجلس الإدارة -->
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="headingSovereign">
+                            <button class="accordion-button py-2 bg-light text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSovereign" aria-expanded="true" aria-controls="collapseSovereign">
+                                <i class="fa-solid fa-landmark me-2 text-success"></i> 1. القيادة السيادية ومجلس الإدارة (5 حسابات)
+                            </button>
+                        </h2>
+                        <div id="collapseSovereign" class="accordion-collapse collapse show" aria-labelledby="headingSovereign">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>المسمى والصفة</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>الاختصاص والصلاحية</th>
+                                                <th class="text-center">إجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-success">رئاسة الوزراء</span> <strong>دولة رئيس مجلس الوزراء</strong></td>
+                                                <td><code>prime_minister</code></td>
+                                                <td>اعتماد ترشيحات مجلس الإدارة وتوثيق القرارات الجمهورية</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('prime_minister', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-warning text-dark">ديوان الوزارة</span> <strong>معالي وزير التعليم العالي</strong></td>
+                                                <td><code>minister</code></td>
+                                                <td>الإشراف الاستراتيجي والمصادقة على اللوائح وترشيحات مجلس الوزراء</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('minister', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-primary">رئاسة المجلس</span> <strong>أ.د. رئيس مجلس الاعتماد الأكاديمي</strong></td>
+                                                <td><code>council_chairman</code></td>
+                                                <td>إدارة الجلسات وإصدار القرارات وتوقيع الشهادات ورفع السياسات للوزير</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('council_chairman', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-info text-dark">رئاسة المجلس</span> <strong>أ.د. نائب رئيس المجلس</strong></td>
+                                                <td><code>council_vice_chairman</code></td>
+                                                <td>التفويض الإداري والأكاديمي ومهام نائب رئيس المجلس</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('council_vice_chairman', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-secondary">مجلس الإدارة</span> <strong>أ.د. خالد الحكيمي (عضو مجلس الإدارة)</strong></td>
+                                                <td><code>board_member</code></td>
+                                                <td>دراسة طلبات الاعتماد والتصويت على منح الاعتماد والسياسات</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('board_member', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. الأمانة العامة والإدارات التخصصية للمجلس -->
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="headingSecretariat">
+                            <button class="accordion-button py-2 bg-light text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSecretariat" aria-expanded="false" aria-controls="collapseSecretariat">
+                                <i class="fa-solid fa-sitemap me-2 text-primary"></i> 2. الأمانة العامة والإدارات التخصصية للمجلس (8 حسابات)
+                            </button>
+                        </h2>
+                        <div id="collapseSecretariat" class="accordion-collapse collapse" aria-labelledby="headingSecretariat">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>المسمى والإدارة</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>الاختصاص والمهام</th>
+                                                <th class="text-center">إجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="demo-account-item">
+                                                <td><strong>د. أمين عام المجلس</strong></td>
+                                                <td><code>sec_general</code></td>
+                                                <td>إدارة الجهاز التنفيذي والأمانة الفنية وإحالة المعاملات والتقارير</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('sec_general', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>سكرتارية المجلس (د. أحمد المتوكل)</strong></td>
+                                                <td><code>council_sec</code></td>
+                                                <td>محاضر الجلسات وتوثيق القرارات الرسمية وجداول الأعمال</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('council_sec', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>سكرتارية وتنسيق الاجتماعات</strong></td>
+                                                <td><code>council_secsss</code></td>
+                                                <td>تنسيق ومتابعة ملفات جلسات المجلس الرسمية</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('council_secsss', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>مدير عام الاعتماد والتراخيص</strong></td>
+                                                <td><code>dg_accreditation</code></td>
+                                                <td>الفحص المكتبي وتدقيق الأهلية وشروط الاعتماد والتراخيص</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('dg_accreditation', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>مدير عام التقييم والمراجعة الخارجية</strong></td>
+                                                <td><code>dg_evaluation</code></td>
+                                                <td>التقرير المقارن وتأليف لجان التحكيم الميداني وإدارة الزيارات</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('dg_evaluation', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>مدير عام ضمان الجودة والتأهيل</strong></td>
+                                                <td><code>dg_quality</code></td>
+                                                <td>إدارة المعايير الوطنية وتأهيل المؤسسات والسجل الوطني للمحكمين</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('dg_quality', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>مدير عام الشؤون المالية والإدارية</strong></td>
+                                                <td><code>dg_finance</code></td>
+                                                <td>إصدار المطالبات ومراجعة السداد البنكي وسندات إخلاء الطرف</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('dg_finance', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>مدير الشؤون القانونية</strong></td>
+                                                <td><code>dir_legal</code></td>
+                                                <td>الفحص القانوني لعرائض الطعون والتظلمات والمذكرات التفسيرية</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('dir_legal', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. الهيئات المستقلة والرقابة والتفتيش -->
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="headingOversight">
+                            <button class="accordion-button py-2 bg-light text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOversight" aria-expanded="false" aria-controls="collapseOversight">
+                                <i class="fa-solid fa-scale-unbalanced-flip me-2 text-danger"></i> 3. الهيئات المستقلة والرقابة والتفتيش (حسابان)
+                            </button>
+                        </h2>
+                        <div id="collapseOversight" class="accordion-collapse collapse" aria-labelledby="headingOversight">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>الهيئة / اللجنة</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>المهام والصلاحيات</th>
+                                                <th class="text-center">إجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-danger">لجنة مستقلة</span> <strong>رئيس لجنة التظلمات والطعون (القاضي د. العرشي)</strong></td>
+                                                <td><code>grievance_chair</code></td>
+                                                <td>النظر المستقل والمحايد في طعون الجامعات وإعداد التقرير الفني</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('grievance_chair', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-secondary">رقابة ميدانية</span> <strong>مفتش الرقابة الميدانية والتفتيش الدوري</strong></td>
+                                                <td><code>surveillance_inspector</code></td>
+                                                <td>التفتيش الميداني الدوري والمفاجئ للتحقق من استمرار شروط الاعتماد</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('surveillance_inspector', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. فريق الخبراء والمحكمين الخارجيين -->
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="headingReviewers">
+                            <button class="accordion-button py-2 bg-light text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReviewers" aria-expanded="false" aria-controls="collapseReviewers">
+                                <i class="fa-solid fa-clipboard-check me-2 text-warning"></i> 4. فريق الخبراء والمحكمين الخارجيين (3 حسابات)
+                            </button>
+                        </h2>
+                        <div id="collapseReviewers" class="accordion-collapse collapse" aria-labelledby="headingReviewers">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>الخبير المحكّم</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>المهام والتحكيم</th>
+                                                <th class="text-center">إجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="demo-account-item">
+                                                <td><strong>أ.د. علي الخولاني (رئيس فريق التحكيم)</strong></td>
+                                                <td><code>reviewer_lead</code></td>
+                                                <td>قيادة الزيارة الميدانية، إقرار النزاهة، تحرير مسودة تقرير المراجعة</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('reviewer_lead', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>خبير محكّم دولي معتمد</strong></td>
+                                                <td><code>ext_reviewer_1</code></td>
+                                                <td>تقييم سلالم التقدير ومؤشرات المعايير وإدخال الدرجات وملاحظات التدقيق</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('ext_reviewer_1', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>أ.د. نجيب يحيى قادري (خبير محكّم وطني)</strong></td>
+                                                <td><code>najeeb_y</code></td>
+                                                <td>فحص الشواهد والأدلة الرقمية والمطابقة الميدانية</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('najeeb_y', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. قيادات وممثلو الجامعات ومراكز الجودة -->
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="headingUniversities">
+                            <button class="accordion-button py-2 bg-light text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUniversities" aria-expanded="false" aria-controls="collapseUniversities">
+                                <i class="fa-solid fa-university me-2 text-info"></i> 5. قيادات وممثلو الجامعات ومراكز الجودة (4 حسابات)
+                            </button>
+                        </h2>
+                        <div id="collapseUniversities" class="accordion-collapse collapse" aria-labelledby="headingUniversities">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>المؤسسة والمسؤول</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>الصفة والمسؤولية</th>
+                                                <th class="text-center">إجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-primary">جامعة صنعاء</span> <strong>رئيس الجامعة (المفوض الأعلى)</strong></td>
+                                                <td><code>univ_pres_sanaa</code></td>
+                                                <td>التوقيع والاعتماد السيادي لطلب الاعتماد والتفويض الرسمي والالتزام المالي</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('univ_pres_sanaa', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-primary">جامعة صنعاء</span> <strong>أ.د. هدى العماد (عميد مركز الجودة)</strong></td>
+                                                <td><code>sanaa_quality</code></td>
+                                                <td>إعداد الدراسة الذاتية ورفع الشواهد ومتابعة الفواتير وتقديم الطعون</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('sanaa_quality', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-primary">جامعة صنعاء</span> <strong>ضابط ارتباط ومتابعة الاعتماد</strong></td>
+                                                <td><code>univ_officer_sanaa</code></td>
+                                                <td>رفع وثائق البرامج ومتابعة ملاحظات الفحص المكتبي واستيفاء النواقص</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('univ_officer_sanaa', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-success">جامعة العلوم والتكنولوجيا</span> <strong>أ.د. أمين الكستبان (عميد الجودة)</strong></td>
+                                                <td><code>ust_quality</code></td>
+                                                <td>إدارة ملفات الاعتماد المؤسسي والبرامجي للجامعة ورفع الشواهد</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('ust_quality', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. الطلاب وأرباب العمل والمستفيدين -->
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="headingPublic">
+                            <button class="accordion-button py-2 bg-light text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePublic" aria-expanded="false" aria-controls="collapsePublic">
+                                <i class="fa-solid fa-user-graduate me-2 text-success"></i> 6. الطلاب وأرباب العمل والمستفيدين (حساب واحد)
+                            </button>
+                        </h2>
+                        <div id="collapsePublic" class="accordion-collapse collapse" aria-labelledby="headingPublic">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>المستفيد</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>نطاق الاستخدام</th>
+                                                <th class="text-center">إجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="demo-account-item">
+                                                <td><span class="badge bg-success">طالب / توظيف</span> <strong>محمد هاشم الكبسي (مستفيد خارجي)</strong></td>
+                                                <td><code>student_verifier</code></td>
+                                                <td>التحقق الرسمي من البرامج المعتمدة، تقديم بلاغات الجودة ومطابقة الشهادات</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('student_verifier', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. إدارة النظم وتكنولوجيا المعلومات -->
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="headingTech">
+                            <button class="accordion-button py-2 bg-light text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTech" aria-expanded="false" aria-controls="collapseTech">
+                                <i class="fa-solid fa-gear me-2 text-dark"></i> 7. إدارة النظم وتكنولوجيا المعلومات (حسابان)
+                            </button>
+                        </h2>
+                        <div id="collapseTech" class="accordion-collapse collapse" aria-labelledby="headingTech">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>الدور التقني</th>
+                                                <th>اسم المستخدم</th>
+                                                <th>الصلاحيات</th>
+                                                <th class="text-center">إجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="demo-account-item">
+                                                <td><strong>مدير عام نظم المعلومات (م. مدير IT)</strong></td>
+                                                <td><code>dir_it</code></td>
+                                                <td>بوابة رسائل SMS، السجلات التقنية، متابعة استقرار الخوادم</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('dir_it', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="demo-account-item">
+                                                <td><strong>مدير النظام المركزي (Admin)</strong></td>
+                                                <td><code>admin</code></td>
+                                                <td>إدارة حسابات المستخدمين وصلاحيات الأدوار والنسخ الاحتياطي</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="fillQuickAccount('admin', 'password123')"><i class="fa-solid fa-arrow-left"></i> تعبئة</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillQuickAccount(username, password) {
+    const userField = document.getElementById('loginUsername');
+    const passField = document.getElementById('loginPassword');
+    if (userField && passField) {
+        userField.value = username;
+        passField.value = password;
+
+        // تأثير بصري سريع للتأكيد
+        userField.classList.add('border-success', 'bg-light');
+        passField.classList.add('border-success', 'bg-light');
+        setTimeout(() => {
+            userField.classList.remove('bg-light');
+            passField.classList.remove('bg-light');
+        }, 600);
+
+        // التمرير إلى النموذج إذا كانت الشاشة صغيرة
+        if (window.innerWidth < 992) {
+            userField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        userField.focus();
+    }
+}
+
+function filterDemoAccounts() {
+    const filter = document.getElementById('accountSearchInput').value.toLowerCase().trim();
+    const items = document.querySelectorAll('.demo-account-item');
+    const accordions = document.querySelectorAll('.accordion-collapse');
+
+    if (!filter) {
+        items.forEach(item => item.style.display = '');
+        return;
+    }
+
+    // افتح كافة الأكورديونات أثناء البحث
+    accordions.forEach(acc => {
+        const bsCollapse = bootstrap.Collapse.getInstance(acc) || new bootstrap.Collapse(acc, { toggle: false });
+        bsCollapse.show();
+    });
+
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        if (text.includes(filter)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

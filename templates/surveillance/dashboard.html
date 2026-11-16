@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}المتابعة الدورية والتحسين المستمر | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-success mb-1">المرحلة 7: المتابعة الدورية والتحسين المستمر</span>
+        <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-clock-rotate-left text-success me-2"></i> لوحة المتابعة الدورية السنوية والزيارات الاستطلاعية</h3>
+        <p class="text-muted mb-0">متابعة التزام المؤسسات والبرامج الحاصلة على الاعتماد بتنفيذ التوصيات وتطبيق معايير الجودة طوال فترة سريان الوثيقة</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-4 border-success">
+            <small class="text-muted fw-bold">إجمالي الاعتمادات السارية</small>
+            <div class="fs-2 fw-black text-dark">{{ total_accredited }}</div>
+            <small class="text-success"><i class="fa-solid fa-certificate me-1"></i> تحت المتابعة المستمرة</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-4 border-primary">
+            <small class="text-muted fw-bold">اعتماد كامل (5 سنوات)</small>
+            <div class="fs-2 fw-black text-primary">{{ full_accredited }}</div>
+            <small class="text-primary"><i class="fa-solid fa-award me-1"></i> تقارير سنوية دورية</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-4 border-warning">
+            <small class="text-muted fw-bold">اعتماد مشروط / مؤقت</small>
+            <div class="fs-2 fw-black text-warning">{{ conditional_accredited }}</div>
+            <small class="text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i> تتطلب خطة تصحيحية عاجلة</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-4 border-info">
+            <small class="text-muted fw-bold">الزيارات الاستطلاعية المنفذة</small>
+            <div class="fs-2 fw-black text-info">{{ surveillance_visits_count }}</div>
+            <small class="text-info"><i class="fa-solid fa-building-circle-check me-1"></i> رقابة وتفتيش ميداني</small>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom p-4">
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check me-2 text-primary"></i> سجل المؤسسات والبرامج المعتمدة تحت المتابعة السنوية</h5>
+    
+    {% if decisions %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>وثيقة الاعتماد</th>
+                    <th>المسار</th>
+                    <th>المؤسسة / البرنامج</th>
+                    <th>نوع الاعتماد</th>
+                    <th>فترة السريان</th>
+                    <th>التقارير السنوية</th>
+                    <th>الزيارات الاستطلاعية</th>
+                    <th class="text-center">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in decisions %}
+                <tr>
+                    <td class="fw-bold font-monospace text-primary">{{ d.decree_number }}</td>
+                    <td>
+                        {% if d.application.is_institutional %}
+                        <span class="badge badge-track-inst">اعتماد مؤسسي</span>
+                        {% else %}
+                        <span class="badge badge-track-prog">اعتماد برامجي</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="fw-bold">{{ d.application.institution.name }}</div>
+                        {% if d.application.program %}
+                        <small class="text-muted">{{ d.application.program.name }} ({{ d.application.program.get_degree_level_display }})</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if d.decision_type == 'FULL_ACCREDITATION' %}bg-success
+                            {% elif d.decision_type == 'CONDITIONAL_ACCREDITATION' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ d.get_decision_type_display }}
+                        </span>
+                    </td>
+                    <td><small>{{ d.start_date }} - {{ d.expiry_date }} ({{ d.validity_years }} سنوات)</small></td>
+                    <td><span class="badge bg-light text-dark border">{{ d.annual_reports.count }} تقارير</span></td>
+                    <td><span class="badge bg-light text-dark border">{{ d.surveillance_visits.count }} زيارات</span></td>
+                    <td class="text-center">
+                        <a href="{% url 'surveillance:manage' d.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-sliders me-1"></i> متابعة الخطة والتقارير
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted text-center py-4">لا توجد وثائق اعتماد صادرة تحت المتابعة حتى الآن.</p>
+    {% endif %}
+</div>
+
+{% if is_board_member or is_council_member %}
+{% if referred_plans or referred_reports %}
+<div class="card card-custom p-4 mt-4 border-start border-4 border-primary">
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-gavel text-primary me-2"></i> ملفات المتابعة المحالة لمجلس الإدارة للاعتماد والبت</h5>
+
+    {% if referred_plans %}
+    <h6 class="fw-bold text-dark small mb-2"><i class="fa-solid fa-chart-line text-success me-1"></i> خطط التحسين المستمر المحالة:</h6>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light small">
+                <tr>
+                    <th>المؤسسة</th>
+                    <th>عنوان الخطة</th>
+                    <th>الحالة الحالية</th>
+                    <th>تاريخ الإحالة</th>
+                    <th class="text-center">إجراء</th>
+                </tr>
+            </thead>
+            <tbody class="small">
+                {% for p in referred_plans %}
+                <tr>
+                    <td class="fw-bold">{{ p.decision.application.institution.name }}</td>
+                    <td>{{ p.plan_title }}</td>
+                    <td><span class="badge bg-secondary">{{ p.get_status_display }}</span></td>
+                    <td>{{ p.reviewed_at|date:"Y-m-d"|default:p.submission_date }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'surveillance:manage' p.decision.pk %}" class="btn btn-sm btn-dark py-0">
+                            <i class="fa-solid fa-gavel me-1"></i> مراجعة وبث
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if referred_reports %}
+    <h6 class="fw-bold text-dark small mb-2"><i class="fa-solid fa-file-lines text-info me-1"></i> تقارير المتابعة السنوية المحالة:</h6>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light small">
+                <tr>
+                    <th>المؤسسة</th>
+                    <th>رقم وسنة التقرير</th>
+                    <th>الفترة</th>
+                    <th>الحالة</th>
+                    <th class="text-center">إجراء</th>
+                </tr>
+            </thead>
+            <tbody class="small">
+                {% for r in referred_reports %}
+                <tr>
+                    <td class="fw-bold">{{ r.decision.application.institution.name }}</td>
+                    <td>التقرير السنوي ({{ r.year_number }})</td>
+                    <td>{{ r.reporting_period }}</td>
+                    <td><span class="badge bg-info text-dark">{{ r.get_review_status_display }}</span></td>
+                    <td class="text-center">
+                        <a href="{% url 'surveillance:manage' r.decision.pk %}" class="btn btn-sm btn-dark py-0">
+                            <i class="fa-solid fa-gavel me-1"></i> فحص وبث
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock %}

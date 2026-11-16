@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}قيد وترخيص مؤسسة تعليمية جديدة | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 my-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'institutions:list' %}">دليل الجامعات والمؤسسات</a></li>
+            <li class="breadcrumb-item active" aria-current="page">قيد مؤسسة تعليمية جديدة</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card card-custom shadow-sm border-0">
+                <div class="p-4 text-white rounded-top" style="background: linear-gradient(135deg, #0b6848 0%, #0f1e2f 100%);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fs-1 text-warning"><i class="fa-solid fa-building-columns"></i></div>
+                        <div>
+                            <h3 class="fw-bold mb-1">استمارة قيد وترخيص مؤسسة تعليم عالي جديدة</h3>
+                            <p class="text-white-50 mb-0 small">توثيق بيانات المؤسسة وقرار الإنشاء الجمهوري/الوزاري في السجل الوطني لمجلس الاعتماد الأكاديمي</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{% url 'institutions:create' %}">
+                        {% csrf_token %}
+
+                        <!-- 1. Basic Identification -->
+                        <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                            <i class="fa-solid fa-id-card me-2"></i> أولاً: البيانات الأساسية والرمز التعريفي
+                        </h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">اسم المؤسسة التعليمية (بالعربية): <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control form-control-lg" placeholder="مثال: جامعة صنعاء" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">اسم المؤسسة (بالإنجليزية):</label>
+                                <input type="text" name="name_en" class="form-control form-control-lg" placeholder="e.g. Sana'a University">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الرمز التعريفي للمؤسسة (Code): <span class="text-danger">*</span></label>
+                                <input type="text" name="code" class="form-control font-monospace" placeholder="مثال: UNIV-SNA-01" required>
+                                <div class="form-text small">رمز فريد ومميز للمؤسسة بالسجل الوطني</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">نوع المؤسسة التعليمية: <span class="text-danger">*</span></label>
+                                <select name="institution_type" class="form-select" required>
+                                    {% for val, label in types %}
+                                    <option value="{{ val }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">سنة التأسيس:</label>
+                                <input type="number" name="establishment_year" class="form-control" placeholder="مثال: 1970" min="1900" max="2030">
+                            </div>
+                        </div>
+
+                        <!-- 2. Legal Establishment Decrees -->
+                        <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                            <i class="fa-solid fa-scale-balanced me-2"></i> ثانياً: السند القانوني وقرار الإنشاء / الترخيص
+                        </h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">رقم وتاريخ قرار الإنشاء الجمهوري / الوزاري: <span class="text-danger">*</span></label>
+                                <input type="text" name="decree_number" class="form-control" placeholder="مثال: قرار جمهوري رقم (12) لسنة 1970م أو قرار وزاري رقم (45)..." required>
+                                <div class="form-text small">المرجع القانوني الرسمي المعتمد من وزارة التعليم العالي والبحث العلمي</div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Location and Address -->
+                        <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                            <i class="fa-solid fa-location-dot me-2"></i> ثالثاً: النطاق الجغرافي والمقر الرئيسي
+                        </h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">المحافظة: <span class="text-danger">*</span></label>
+                                <input type="text" name="governorate" class="form-control" placeholder="صنعاء، عدن، تعز، حضرموت..." required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">المدينة / المديرية:</label>
+                                <input type="text" name="city" class="form-control" placeholder="مثال: أمانة العاصمة - معين">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان والمقر الرئيسي التفصيلي:</label>
+                                <input type="text" name="address" class="form-control" placeholder="الشارع، الحي، الحرم الجامعي...">
+                            </div>
+                        </div>
+
+                        <!-- 4. Leadership & Quality Administration -->
+                        <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                            <i class="fa-solid fa-user-tie me-2"></i> رابعاً: القيادة وإدارة ضمان الجودة
+                        </h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">اسم رئيس الجامعة / عميد المؤسسة:</label>
+                                <input type="text" name="president_name" class="form-control" placeholder="أ.د. رئيس الجامعة">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">اسم عميد / مدير مركز التطوير وضمان الجودة:</label>
+                                <input type="text" name="quality_center_dean" class="form-control" placeholder="د. مدير مركز ضمان الجودة">
+                            </div>
+                        </div>
+
+                        <!-- 5. Communication Channels -->
+                        <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                            <i class="fa-solid fa-headset me-2"></i> خامساً: قنوات التواصل الرسمية
+                        </h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الموقع الإلكتروني الرسمي:</label>
+                                <input type="url" name="website" class="form-control font-monospace" placeholder="https://example.edu.ye">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">البريد الإلكتروني الرسمي:</label>
+                                <input type="email" name="official_email" class="form-control font-monospace" placeholder="info@example.edu.ye">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الهاتف الرسمي للمؤسسة:</label>
+                                <input type="text" name="official_phone" class="form-control" placeholder="+967 1 ...">
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <a href="{% url 'institutions:list' %}" class="btn btn-outline-secondary px-4 fw-bold">
+                                <i class="fa-solid fa-arrow-right me-1"></i> إلغاء ورجوع
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg px-5 fw-bold" style="background-color: #0b6848;">
+                                <i class="fa-solid fa-check me-2"></i> حفظ وتوثيق المؤسسة بالسجل الوطني
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

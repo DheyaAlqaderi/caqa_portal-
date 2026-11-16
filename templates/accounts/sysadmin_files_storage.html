@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة الملفات ومساحة التخزين | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+{% include 'accounts/includes/sysadmin_nav.html' %}
+
+<div class="card card-custom p-4 mb-4">
+    <h3 class="fw-bold text-dark mb-1"><i class="fa-solid fa-hard-drive text-primary me-2"></i> إدارة ومراقبة الملفات ومساحة التخزين</h3>
+    <p class="text-muted small mb-4">فحص البيانات الوصفية للملفات المرفوعة، سعة التخزين، وكشف الملفات المفقودة أو اليتيمة أو المكررة دون الإخلال بسرية الوثائق</p>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><div class="small text-muted">إجمالي السجلات</div><div class="fs-4 fw-bold">{{ total_records_count }}</div></div></div>
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><div class="small text-muted">استهلاك التخزين الفعلي</div><div class="fs-4 fw-bold text-primary">{{ storage.formatted }}</div></div></div>
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><div class="small text-muted">ملفات مفقودة / يتيمة</div><div class="fs-4 fw-bold text-danger">{{ missing_count }} مفقود / {{ orphaned_files|length }} يتيم</div></div></div>
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><div class="small text-muted">امتدادات غير مدعومة</div><div class="fs-4 fw-bold text-warning">{{ unsupported_count }}</div></div></div>
+    </div>
+
+    <form method="GET" class="row g-2 mb-3">
+        <div class="col-md-5"><input type="text" name="q" value="{{ filters.q }}" class="form-control form-control-sm" placeholder="بحث باسم الملف أو المؤسسة أو رقم الطلب..."></div>
+        <div class="col-md-3">
+            <select name="category" class="form-select form-select-sm">
+                <option value="">-- كافة التصنيفات --</option>
+                <option value="EVIDENCE" {% if filters.category == 'EVIDENCE' %}selected{% endif %}>شواهد الاعتماد</option>
+                <option value="LIBRARY" {% if filters.category == 'LIBRARY' %}selected{% endif %}>مستندات المكتبة</option>
+            </select>
+        </div>
+        <div class="col-md-4"><button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">تصفية الملفات</button></div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle small">
+            <thead class="table-light">
+                <tr><th>المعرف</th><th>اسم/عنوان الملف</th><th>النوع</th><th>الحجم</th><th>المستخدم الرافع</th><th>المؤسسة / الطلب</th><th>حالة التخزين</th><th>تاريخ الرفع</th></tr>
+            </thead>
+            <tbody>
+                {% for f in files %}
+                <tr>
+                    <td class="font-monospace">{{ f.id }}</td>
+                    <td class="fw-bold">{{ f.title|truncatechars:45 }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ f.category_label }} (.{{ f.extension }})</span></td>
+                    <td class="font-monospace">{{ f.size_bytes }} B</td>
+                    <td>@{{ f.uploader }}</td>
+                    <td>{{ f.institution }} ({{ f.application_number }})</td>
+                    <td>
+                        {% if f.storage_status == 'AVAILABLE' %}<span class="badge bg-success">متوفر وسليم</span>
+                        {% elif f.storage_status == 'SYSTEM_LINKED' or f.storage_status == 'VIRTUAL_RECORD' %}<span class="badge bg-info text-dark">مرتبط بالنظام</span>
+                        {% else %}<span class="badge bg-danger">مفقود على القرص</span>{% endif %}
+                    </td>
+                    <td class="font-monospace">{{ f.upload_date|date:"Y-m-d" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}ملف الاعتماد المتكامل (17 قسماً) — {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'accreditation:application_detail' app.pk %}">ملف الطلب {{ app.application_number }}</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'accreditation:secretariat_comparison_dashboard' app.pk %}">تقرير المقارنة التحليلي</a></li>
+                    <li class="breadcrumb-item active">ملف الاعتماد المتكامل (17 قسماً)</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-layer-group text-primary me-2"></i>
+                ملف الاعتماد الأكاديمي المتكامل المعروض على مجلس الإدارة (17 قسماً رسمياً)
+            </h3>
+            <p class="text-muted mb-0">
+                <span class="badge bg-primary me-1">{{ app.application_number }}</span>
+                <span class="badge bg-dark me-1">{{ app.get_status_display }}</span>
+                <span class="ms-2">المؤسسة: <strong>{{ app.institution.name }}</strong></span>
+                {% if app.program %}<span class="ms-2">| البرنامج: <strong>{{ app.program.name }}</strong></span>{% endif %}
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'accreditation:ai_quality_analyzer' app.pk %}" class="btn btn-dark btn-sm fw-bold">
+                <i class="fa-solid fa-wand-magic-sparkles text-warning me-1"></i> المساعد الذكي لتحليل الفجوات (AI Analyzer)
+            </a>
+            <a href="{% url 'accreditation:secretariat_comparison_dashboard' app.pk %}" class="btn btn-outline-primary btn-sm fw-bold">
+                <i class="fa-solid fa-scale-balanced me-1"></i> فتح تقرير المقارنة التحليلي
+            </a>
+            {% if agenda_item %}
+            <a href="{% url 'decisions:agenda_item_detail' agenda_item.pk %}" class="btn btn-outline-dark btn-sm fw-bold">
+                <i class="fa-solid fa-gavel me-1"></i> بند جدول أعمال الجلسة ({{ agenda_item.meeting.meeting_number }})
+            </a>
+            {% endif %}
+            {% if request.user.is_board or request.user.is_superuser %}
+            <a href="{% url 'decisions:issue_decision' app.pk %}" class="btn btn-success btn-sm fw-bold">
+                <i class="fa-solid fa-stamp me-1"></i> إصدار قرار وشهادة الاعتماد
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Secretary General Referral Action Card -->
+    {% if request.user.role == 'COUNCIL_SECRETARY_GENERAL' or request.user.role == 'DG_EVALUATION' or request.user.is_superuser %}
+    <div class="card border-primary shadow-sm mb-4">
+        <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+            <span><i class="fa-solid fa-paper-plane me-2"></i> اعتماد وإرسال الأمين العام للمجلس: تقرير المقارنة التحليلي + ملف الاعتماد المتكامل (17 قسماً) إلى رئيس وأعضاء مجلس الإدارة</span>
+            <span class="badge bg-light text-primary">{{ app.get_status_display }}</span>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'accreditation:application_dossier_17_view' app.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="refer_dossier_17_to_council" value="1">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold small">عنوان مذكرة الإحالة وتقرير المقارنة التحليلي:</label>
+                        <input type="text" name="comparison_title" class="form-control form-control-sm" value="{{ latest_comparison.title|default:'تقرير المقارنة التحليلي وملف الاعتماد المتكامل (17 قسماً) - '|add:app.application_number }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">إدراج في جدول أعمال جلسة مجلس الإدارة (اختياري):</label>
+                        <select name="meeting_id" class="form-select form-select-sm">
+                            <option value="">-- بدون ربط فوري بجلسة محددة --</option>
+                            {% for m in meetings %}
+                            <option value="{{ m.pk }}" {% if agenda_item and agenda_item.meeting_id == m.pk %}selected{% endif %}>{{ m.meeting_number }} ({{ m.meeting_date }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold w-100">
+                            <i class="fa-solid fa-share-from-square me-1"></i> اعتماد وإرسال الملف (17 قسماً) لمجلس الإدارة
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small">ملخص وتوصية الأمين العام للمجلس المرفوعة لرئيس وأعضاء مجلس الإدارة:</label>
+                        <textarea name="secretariat_analytical_summary" rows="2" class="form-control form-control-sm" placeholder="اكتب خلاصة المطابقة التحليلية والتوصية المرفوعة لرئيس وأعضاء مجلس الإدارة...">{{ latest_comparison.secretariat_analytical_summary|default:'' }}</textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 17-Part Dossier Grid -->
+    <div class="card card-custom p-4 shadow-sm border-0">
+        <h5 class="fw-bold text-dark mb-3">
+            <i class="fa-solid fa-folder-tree text-primary me-2"></i> الأقسام السبعة عشر (17 Sections) لملف الاعتماد المتكامل
+        </h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-primary">1. بيانات المؤسسة التعليمية</h6>
+                    <div class="small"><strong>المؤسسة:</strong> {{ dossier.part_1_institution.name }}</div>
+                    <div class="small"><strong>النوع:</strong> {{ dossier.part_1_institution.get_institution_type_display }}</div>
+                    <div class="small"><strong>المحافظة:</strong> {{ dossier.part_1_institution.governorate }}</div>
+                    <div class="small"><strong>قرار الإنشاء:</strong> {{ dossier.part_1_institution.decree_number|default:"موثق" }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-primary">2. بيانات البرنامج الأكاديمي</h6>
+                    {% if dossier.part_2_program %}
+                    <div class="small"><strong>البرنامج:</strong> {{ dossier.part_2_program.name }}</div>
+                    <div class="small"><strong>الكلية:</strong> {{ dossier.part_2_program.college.name }}</div>
+                    <div class="small"><strong>الدرجة العلمية:</strong> {{ dossier.part_2_program.get_degree_level_display }}</div>
+                    {% else %}
+                    <div class="small text-muted">اعتماد مؤسسي شامل للمؤسسة التعليمية بالكامل.</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-primary">3. طلب الاعتماد الرسمي</h6>
+                    <div class="small"><strong>رقم الطلب:</strong> {{ dossier.part_3_application.application_number }}</div>
+                    <div class="small"><strong>المسار:</strong> {{ dossier.part_3_application.get_track_display }}</div>
+                    <div class="small"><strong>الحالة:</strong> {{ dossier.part_3_application.get_status_display }}</div>
+                    <div class="mt-2">
+                        <a href="{% url 'accreditation:application_report' app.pk %}" class="btn btn-outline-primary btn-xs py-0 px-2 small">فتح تقرير طلب الاعتماد</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-bold text-primary">4. تقرير الدراسة والتقييم الذاتي (SSR)</h6>
+                    {% if dossier.part_4_self_study_report %}
+                    <div class="small mb-1"><strong>الملخص التنفيذي:</strong> {{ dossier.part_4_self_study_report.executive_summary|truncatechars:180 }}</div>
+                    <a href="{% url 'accreditation:self_study_report_view' app.pk %}" class="btn btn-outline-primary btn-sm mt-1">فتح تقرير التقييم الذاتي الكامل</a>
+                    {% else %}
+                    <div class="small text-muted">لم يُرفق تقرير دراسة ذاتية منفصل.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-bold text-primary">5 & 6. المعايير والمؤشرات ووثائق الشواهد والأدلة ({{ dossier.part_6_evidences|length }} شاهد)</h6>
+                    <div class="small mb-1"><strong>إصدار المعايير المطبق:</strong> {{ dossier.part_5_standards.title|default:"معايير الاعتماد الوطنية المعتمدة" }}</div>
+                    <div class="small text-muted">إجمالي الشواهد المرفوعة والمتحقق من بصمتها الرقمية SHA-256: ({{ dossier.part_6_evidences|length }}) وثيقة.</div>
+                    <a href="{% url 'accreditation:evidence_manage' app.pk %}" class="btn btn-outline-secondary btn-sm mt-1">استعراض بنك الشواهد</a>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-bold text-primary">7 & 8. نتائج التقييم الذاتي وتقرير الفحص المكتبي الشكلي والموضوعي</h6>
+                    <div class="small mb-1"><strong>عدد استجابات المؤشرات الذاتية:</strong> {{ dossier.part_7_self_eval_results|length }} مؤشر.</div>
+                    {% for dr in dossier.part_8_desk_reviews %}
+                    <div class="small border-top pt-1 mt-1">
+                        <strong>قرار الفحص المكتبي:</strong> {{ dr.get_decision_display }} (نسبة الاكتمال: {{ dr.completeness_percentage }}%) — {{ dr.technical_remarks|truncatechars:120 }}
+                    </div>
+                    {% empty %}
+                    <div class="small text-muted">لا توجد تقارير فحص مكتبي مسجلة.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-bold text-primary">9. تقرير الزيارة الميدانية والمعاينة الواقعية</h6>
+                    {% if dossier.part_9_site_visit %}
+                    <div class="small"><strong>الفترة:</strong> {{ dossier.part_9_site_visit.start_date }} إلى {{ dossier.part_9_site_visit.end_date }} ({{ dossier.part_9_site_visit.get_status_display }})</div>
+                    <div class="small"><strong>المرافق المعاينة:</strong> {{ dossier.part_9_facilities|length }} مرفق ومعمل | <strong>المقابلات:</strong> {{ dossier.part_9_interviews|length }} لقاء</div>
+                    <a href="{% url 'site_visits:console' app.pk %}" class="btn btn-outline-secondary btn-sm mt-1">فتح لوحة الزيارة الميدانية</a>
+                    {% else %}
+                    <div class="small text-muted">لم تُسجل زيارة ميدانية لهذا الطلب.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-bold text-primary">10 & 11. نتائج التقييم الخارجي وتقرير لجنة المراجعة</h6>
+                    <div class="small mb-1"><strong>عدد التقييمات المرصودة للمؤشرات (Rubrics):</strong> {{ dossier.part_10_external_scores|length }} تقييم.</div>
+                    {% if dossier.part_11_review_team %}
+                    <div class="small"><strong>قرار تشكيل اللجنة:</strong> {{ dossier.part_11_review_team.decree_number }} (رئيس الفريق: {{ dossier.part_11_review_team.chairperson.get_full_name }})</div>
+                    {% endif %}
+                    <a href="{% url 'accreditation:external_report_manage' app.pk %}" class="btn btn-outline-primary btn-sm mt-1">فتح تقرير المراجعة الخارجية</a>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-bold text-primary">12 & 13. رد المؤسسة (حق الرد) والتقرير النهائي للمراجعين</h6>
+                    <div class="small mb-1"><strong>رد المؤسسة:</strong> {{ dossier.part_12_institution_reply.text|default:"تم استكمال المراجعة والمطابقة."|truncatechars:140 }}</div>
+                    {% if dossier.part_13_final_external_report %}
+                    <div class="small"><strong>النص الختامي المعتمد:</strong> {{ dossier.part_13_final_external_report.final_report_text|truncatechars:150 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-success">14 & 15. تقرير المقارنة التحليلي وتوصية لجنة الاعتماد</h6>
+                    <div class="small mb-1"><strong>تقارير المقارنة المعتمدة:</strong> {{ dossier.part_14_comparison_reports|length }} تقرير مقارنة بين التقييم الذاتي والخارجي مع الشواهد.</div>
+                    <div class="small fw-bold text-dark"><strong>توصية فريق التقييم الخارجي:</strong> {{ dossier.part_15_committee_recommendation.panel_recommendation }}</div>
+                    <div class="small fw-bold text-success"><strong>التوصية المرفوعة للمجلس:</strong> {{ dossier.part_15_committee_recommendation.agenda_initial_recommendation }}</div>
+                    <a href="{% url 'accreditation:secretariat_comparison_dashboard' app.pk %}" class="btn btn-success btn-sm mt-2">فتح تقرير المقارنة التحليلي</a>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <h6 class="fw-bold text-primary">16 & 17. الملاحظات والقرارات السابقة والسجل التاريخي والوثائق الداعمة</h6>
+                    <div class="small mb-1"><strong>القرارات السابقة للمؤسسة:</strong> {{ dossier.part_16_previous_decisions|length }} قرار سابق.</div>
+                    <div class="small mb-1"><strong>حركات سجل التدقيق والحالة:</strong> {{ dossier.part_16_status_history|length }} حركة موثقة.</div>
+                    <div class="small"><strong>المرفقات الداعمة للبند:</strong> {{ dossier.part_17_attachments|length }} مرفق رسمي.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

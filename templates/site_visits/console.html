@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+
+{% block title %}منصة إدارة الزيارة الميدانية | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-warning text-dark mb-1">المرحلة 4: الزيارة الميدانية (Site Visit)</span>
+        <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-building-circle-check text-warning me-2"></i> منصة وتوثيق أنشطة الزيارة الميدانية الواقعية</h4>
+        <small class="text-muted">الطلب رقم: {{ app.application_number }} - {{ app.institution.name }} ({{ app.get_track_display }})</small>
+    </div>
+    <div>
+        <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة للملف
+        </a>
+    </div>
+</div>
+
+<!-- Visit Master Schedule & Status Card -->
+<div class="card card-custom p-4 mb-4">
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_schedule">
+
+        <div class="row g-3 align-items-center mb-3">
+            <div class="col-md-3">
+                <label class="form-label fw-bold small">تاريخ بدء الزيارة:</label>
+                <input type="date" name="start_date" class="form-control" value="{{ visit.start_date|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold small">تاريخ اختتام الزيارة:</label>
+                <input type="date" name="end_date" class="form-control" value="{{ visit.end_date|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold small">حالة الزيارة الحالية:</label>
+                <select name="status" class="form-select">
+                    <option value="SCHEDULED" {% if visit.status == 'SCHEDULED' %}selected{% endif %}>مجدولة ومؤكدة</option>
+                    <option value="IN_PROGRESS" {% if visit.status == 'IN_PROGRESS' %}selected{% endif %}>الزيارة جارية حالياً على أرض الواقع</option>
+                    <option value="COMPLETED" {% if visit.status == 'COMPLETED' %}selected{% endif %}>اكتملت الزيارة الميدانية (الانتقال لمرحلة التقرير)</option>
+                    <option value="POSTPONED" {% if visit.status == 'POSTPONED' %}selected{% endif %}>مؤجلة</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold small">المسؤول اللوجستي من المؤسسة:</label>
+                <input type="text" name="logistics_coordinator" class="form-control" value="{{ visit.logistics_coordinator }}" placeholder="الاسم ورقم التواصل">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold small">البرنامج والجدول الزمني للزيارة الميدانية:</label>
+                <textarea name="agenda_details" class="form-control" rows="3">{{ visit.agenda_details }}</textarea>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold small">محضر اللقاء الختامي الشفوي مع قيادة المؤسسة (Exit Meeting):</label>
+                <textarea name="final_exit_meeting_notes" class="form-control" rows="3" placeholder="أبرز الانطباعات العامة الإيجابية وفرص التحسين التي عُرضت شفوياً في اللقاء الختامي...">{{ visit.final_exit_meeting_notes }}</textarea>
+            </div>
+        </div>
+
+        {% if is_reviewer or is_council %}
+        <div class="text-end">
+            <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
+                <i class="fa-solid fa-floppy-disk me-1"></i> حفظ وتحديث بيانات الزيارة
+            </button>
+        </div>
+        {% else %}
+        <div class="alert alert-light border small text-muted mb-0">
+            <i class="fa-solid fa-info-circle text-primary me-1"></i> جدول الزيارة الميدانية معتمد ومنسق بواسطة أمانة المجلس وفريق التقييم الخارجي.
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Tabs for the 3 On-Site Activities -->
+<ul class="nav nav-pills mb-3" id="siteVisitTab" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active fw-bold" id="facilities-tab" data-bs-toggle="pill" data-bs-target="#facilities-pane" type="button">
+            <i class="fa-solid fa-microscope me-1"></i> 1. فحص البنية التحتية، القاعات، والمعامل ({{ inspections.count }})
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-bold" id="interviews-tab" data-bs-toggle="pill" data-bs-target="#interviews-pane" type="button">
+            <i class="fa-solid fa-users me-1"></i> 2. مقابلات واجتماعات أصحاب المصلحة ({{ interviews.count }})
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-bold" id="audits-tab" data-bs-toggle="pill" data-bs-target="#audits-pane" type="button">
+            <i class="fa-solid fa-file-circle-check me-1"></i> 3. تدقيق الامتحانات وأعمال الطلاب ({{ audits.count }})
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="siteVisitTabContent">
+    
+    <!-- Tab 1: Facilities Inspections -->
+    <div class="tab-pane fade show active" id="facilities-pane">
+        <div class="row g-4">
+            {% if is_reviewer %}
+            <div class="col-lg-4">
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-plus-circle text-success me-1"></i> توثيق معاينة مرفق / معمل</h5>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_facility">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">نوع المرفق:</label>
+                            <select name="category" class="form-select" required>
+                                {% for val, label in facility_categories %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">اسم المرفق أو المختبر:</label>
+                            <input type="text" name="facility_name" class="form-control" placeholder="مثال: معمل الصيدلانيات 1" required>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">السعة الاستيعابية:</label>
+                                <input type="number" name="capacity_students" class="form-control" value="30">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold small">مستوى الملاءمة:</label>
+                                <select name="adequacy_rating" class="form-select">
+                                    {% for val, label in adequacy_levels %}
+                                    <option value="{{ val }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">الملاحظات والشواهد الواقعية:</label>
+                            <textarea name="detailed_observations" class="form-control" rows="3" placeholder="مستوى التجهيز، الأجهزة العاملة، معايير السلامة..."></textarea>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="safety_compliance" id="safety_compliance" checked>
+                            <label class="form-check-label small fw-bold" for="safety_compliance">مستوفٍ لمعايير السلامة المهنية ومخارج الطوارئ</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 fw-bold">
+                            <i class="fa-solid fa-plus me-1"></i> حفظ سجل المعاينة
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-8">
+            {% else %}
+            <div class="col-lg-12">
+            {% endif %}
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2 text-primary"></i> سجل المرافق والمعامل المعاينة</h5>
+                    {% if inspections %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>المرفق</th>
+                                    <th>النوع</th>
+                                    <th>السعة</th>
+                                    <th>التقييم</th>
+                                    <th>المعاين</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ins in inspections %}
+                                <tr>
+                                    <td class="fw-bold">{{ ins.facility_name }}</td>
+                                    <td><small>{{ ins.get_category_display }}</small></td>
+                                    <td>{{ ins.capacity_students }} طالب</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if ins.adequacy_rating == 'EXCELLENT' %}bg-success
+                                            {% elif ins.adequacy_rating == 'ADEQUATE' %}bg-primary
+                                            {% elif ins.adequacy_rating == 'NEEDS_IMPROVEMENT' %}bg-warning text-dark
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ ins.get_adequacy_rating_display }}
+                                        </span>
+                                    </td>
+                                    <td><small>{{ ins.inspector.get_full_name|default:ins.inspector.username }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">لم يتم تسجيل أي معاينة مرافق حتى الآن.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Stakeholder Interviews -->
+    <div class="tab-pane fade" id="interviews-pane">
+        <div class="row g-4">
+            {% if is_reviewer %}
+            <div class="col-lg-4">
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-plus-circle text-primary me-1"></i> توثيق محضر مقابلة أصحاب المصلحة</h5>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_interview">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">الفئة المستهدفة في المقابلة:</label>
+                            <select name="target_group" class="form-select" required>
+                                {% for val, label in stakeholder_groups %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">عدد الحاضرين في الجلسة:</label>
+                            <input type="number" name="attendees_count" class="form-control" value="12" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">محاور النقاش والأسئلة الموجهة:</label>
+                            <textarea name="key_themes_discussed" class="form-control" rows="2" placeholder="جودة التدريس، كفاءة المناهج، الرضا عن الخدمات..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">ملخص إفادات وملاحظات الفئة:</label>
+                            <textarea name="feedback_summary" class="form-control" rows="3" placeholder="سجل هنا خلاصة آراء المشاركين وإشكالياتهم..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold">
+                            <i class="fa-solid fa-save me-1"></i> توثيق محضر المقابلة
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-8">
+            {% else %}
+            <div class="col-lg-12">
+            {% endif %}
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-comments me-2 text-primary"></i> محاضر المقابلات المنجزة</h5>
+                    {% if interviews %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الفئة المستهدفة</th>
+                                    <th>عدد الحضور</th>
+                                    <th>المحاور والخلاصة</th>
+                                    <th>المحاور المكلف</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for itv in interviews %}
+                                <tr>
+                                    <td class="fw-bold">{{ itv.get_target_group_display }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ itv.attendees_count }} حاضر</span></td>
+                                    <td><small>{{ itv.feedback_summary|truncatewords:15 }}</small></td>
+                                    <td><small>{{ itv.conducted_by.get_full_name|default:itv.conducted_by.username }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">لم يتم تسجيل محاضر مقابلات حتى الآن.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Academic Audits -->
+    <div class="tab-pane fade" id="audits-pane">
+        <div class="row g-4">
+            {% if is_reviewer %}
+            <div class="col-lg-4">
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-plus-circle text-warning text-dark me-1"></i> توثيق فحص وتدقيق أكاديمي</h5>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_academic_audit">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">نوع التدقيق الأكاديمي:</label>
+                            <select name="audit_type" class="form-select" required>
+                                {% for val, label in audit_types %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">اسم المقرر / العينة المفحوصة:</label>
+                            <input type="text" name="course_or_subject" class="form-control" placeholder="مثال: مقرر الكيمياء الحيوية 101" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">حجم العينة وتفاصيلها:</label>
+                            <input type="text" name="sampling_details" class="form-control" placeholder="عينة عشوائية من 30 ورقة امتحانية مع نماذج الإجابة">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">مستوى المطابقة:</label>
+                            <select name="compliance_rating" class="form-select">
+                                {% for val, label in compliance_levels %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">النتائج والشواهد:</label>
+                            <textarea name="findings_and_evidence" class="form-control" rows="3" placeholder="مدى توافق أسئلة الاختبار مع نتاجات التعلم، دقة التصحيح والسلالم..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-warning fw-bold text-dark w-100">
+                            <i class="fa-solid fa-save me-1"></i> حفظ سجل التدقيق
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-8">
+            {% else %}
+            <div class="col-lg-12">
+            {% endif %}
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-lines me-2 text-primary"></i> سجلات التدقيق الأكاديمي المنجزة</h5>
+                    {% if audits %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>المقرر / العينة</th>
+                                    <th>نوع الفحص</th>
+                                    <th>المطابقة</th>
+                                    <th>الشواهد والنتائج</th>
+                                    <th>المحكّم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for aud in audits %}
+                                <tr>
+                                    <td class="fw-bold">{{ aud.course_or_subject }}</td>
+                                    <td><small>{{ aud.get_audit_type_display }}</small></td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if aud.compliance_rating == 'FULLY_COMPLIANT' %}bg-success
+                                            {% elif aud.compliance_rating == 'MINOR_ISSUES' %}bg-warning text-dark
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ aud.get_compliance_rating_display }}
+                                        </span>
+                                    </td>
+                                    <td><small>{{ aud.findings_and_evidence|truncatewords:10 }}</small></td>
+                                    <td><small>{{ aud.auditor.get_full_name|default:aud.auditor.username }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">لم يتم تسجيل سجلات تدقيق أكاديمي حتى الآن.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

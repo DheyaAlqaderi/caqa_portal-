@@ -1,0 +1,433 @@
+{% extends 'base.html' %}
+
+{% block title %}الرئيسية | مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي{% endblock %}
+
+{% block content %}
+<!-- Welcome & Quick Action Banner -->
+<div class="row mb-4 align-items-center">
+    <div class="col-lg-8">
+        <h3 class="fw-bold text-dark mb-1">
+            مرحباً، {{ user.academic_title }} {{ user.get_full_name|default:user.username }}
+        </h3>
+        <p class="text-muted mb-0">
+            لوحة القيادة الموحدة لمتابعة وإدارة دورة الاعتماد الأكاديمي وضمان الجودة (المسار المؤسسي والمسار البرامجي)
+        </p>
+    </div>
+    {% if not user.role == 'BOARD_MEMBER' and not user.role == 'COUNCIL_SECRETARY' and not user.role == 'EXTERNAL_REVIEWER' %}
+    {% if user.is_institution_rep or user.is_superuser or user.role == 'ADMIN' %}
+    <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+        <div class="btn-group">
+            <button type="button" class="btn btn-success dropdown-toggle fw-bold py-2 px-3 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #0b6848;">
+                <i class="fa-solid fa-plus-circle me-1"></i> تقديم طلب اعتماد جديد
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                <li>
+                    <a class="dropdown-item py-2" href="{% url 'accreditation:application_create' %}?track=INSTITUTIONAL">
+                        <i class="fa-solid fa-university text-success me-2"></i> طلب اعتماد مؤسسي (جامعة / كلية)
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item py-2" href="{% url 'accreditation:application_create' %}?track=PROGRAMMATIC">
+                        <i class="fa-solid fa-graduation-cap text-primary me-2"></i> طلب اعتماد برامجي تخصصي
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Contextual Guidance & Action Assistant Card -->
+{% include 'includes/contextual_guidance_card.html' %}
+
+{% if directorate_data %}
+<!-- Directorate & Council Leadership Dedicated Workspace -->
+<div class="card card-custom border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #0b2545 0%, #134074 100%); color: white;">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 border-bottom border-light border-opacity-25 pb-3">
+            <div>
+                <span class="badge bg-warning text-dark px-3 py-1 mb-1 fw-bold">
+                    <i class="fa-solid fa-briefcase me-1"></i> بيئة العمل التنفيذية المخصصة
+                </span>
+                <h4 class="fw-bold mb-0 text-white">
+                    {% if user_role == 'COUNCIL_CHAIRMAN' or user_role == 'COUNCIL_VICE_CHAIRMAN' or user_role == 'BOARD_MEMBER' %}
+                        <i class="fa-solid fa-building-columns text-warning me-2"></i> منصة قيادة المجلس والمداولات والقرارات العليا
+                    {% elif user_role == 'COUNCIL_SECRETARY_GENERAL' %}
+                        <i class="fa-solid fa-sliders text-warning me-2"></i> غرفة المتابعة الفنية المركزية للأمانة العامة
+                    {% elif user_role == 'DG_ACCREDITATION' %}
+                        <i class="fa-solid fa-certificate text-warning me-2"></i> مساحة الإدارة العامة للاعتماد والتراخيص
+                    {% elif user_role == 'DG_EVALUATION' %}
+                        <i class="fa-solid fa-user-check text-warning me-2"></i> مساحة الإدارة العامة للتقييم والمراجعة الخارجية
+                    {% elif user_role == 'DG_FINANCE_ADMIN' %}
+                        <i class="fa-solid fa-file-invoice-dollar text-warning me-2"></i> مساحة الإدارة العامة للشؤون المالية والإدارية
+                    {% elif user_role == 'LEGAL_DIRECTOR' %}
+                        <i class="fa-solid fa-gavel text-warning me-2"></i> مساحة الإدارة العامة للشؤون القانونية والطعون
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="text-white-50 small">
+                الصفة المعتمدة: <strong class="text-white">{{ user.get_role_display }}</strong>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            {% if user_role == 'COUNCIL_CHAIRMAN' or user_role == 'COUNCIL_VICE_CHAIRMAN' or user_role == 'BOARD_MEMBER' %}
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">طلبات بانتظار جلسات المداولة والبت</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_board_reviews }}</div>
+                        <a href="{% url 'accreditation:board_applications_list' %}" class="btn btn-sm btn-warning mt-2 fw-bold w-100">
+                            <i class="fa-solid fa-list-check me-1"></i> فتح ملفات المجلس
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">تظلمات وطعون بانتظار قرار المجلس</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_board_grievances }}</div>
+                        <a href="{% url 'accreditation:grievances_list' %}?status=UNDER_COMMITTEE_REVIEW" class="btn btn-sm btn-outline-warning mt-2 w-100">
+                            <i class="fa-solid fa-scale-unbalanced-flip me-1"></i> نظر طعون المجلس
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">إجمالي قرارات الاعتماد الصادرة</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.total_decisions_issued }}</div>
+                        <a href="{% url 'decisions:meetings_list' %}" class="btn btn-sm btn-outline-light mt-2 w-100">
+                            <i class="fa-solid fa-stamp me-1"></i> سجل وقرارات المجلس
+                        </a>
+                    </div>
+                </div>
+            {% elif user_role == 'COUNCIL_SECRETARY_GENERAL' %}
+                <div class="col-md-3">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">طلبات الاستلام والقيد</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_intake }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">قيد الفحص المكتبي</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_desk }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">بانتظار لجان المراجعة</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_panel }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">تظلمات نشطة</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.active_appeals }}</div>
+                    </div>
+                </div>
+            {% elif user_role == 'DG_ACCREDITATION' %}
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">ملفات بانتظار الفحص المكتبي</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_desk_review }}</div>
+                        <a href="{% url 'accreditation:institutional_list' %}" class="btn btn-sm btn-warning mt-2 fw-bold w-100">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> استعراض الملفات للفحص
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">طلبات قيد استكمال النواقص</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.deficiency_followups }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">ملفات مستوفية منقولة للتقييم</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.accepted_desk_reviews }}</div>
+                    </div>
+                </div>
+            {% elif user_role == 'DG_EVALUATION' %}
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">ملفات بانتظار تشكيل فرق المراجعين</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_team_assignment }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">زيارات ميدانية مجدولة / جارية</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.active_site_visits }}</div>
+                        <a href="{% url 'accreditation:institutional_list' %}" class="btn btn-sm btn-warning mt-2 fw-bold w-100">
+                            <i class="fa-solid fa-calendar-days me-1"></i> متابعة التقييم الميداني
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">سجل المحكمين الخارجيين المعتمدين</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.certified_evaluators_count }}</div>
+                    </div>
+                </div>
+            {% elif user_role == 'DG_FINANCE_ADMIN' %}
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">سندات بنكية بانتظار التدقيق والإبراء</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.receipts_pending_verification }}</div>
+                        <a href="{% url 'operations:invoices_list' %}" class="btn btn-sm btn-warning mt-2 fw-bold w-100">
+                            <i class="fa-solid fa-receipt me-1"></i> تدقيق السندات والتحصيل
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">مطالبات مالية مسددة بالكامل</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.total_paid_invoices }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">مطالبات غير مسددة</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.unpaid_invoices_count }}</div>
+                    </div>
+                </div>
+            {% elif user_role == 'LEGAL_DIRECTOR' %}
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">تظلمات بانتظار الفحص والمطالعة القانونية</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.pending_legal_examination }}</div>
+                        <a href="{% url 'accreditation:grievances_list' %}" class="btn btn-sm btn-warning mt-2 fw-bold w-100">
+                            <i class="fa-solid fa-gavel me-1"></i> جدول التظلمات والطعون
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">طعون قيد الدراسة بلجنة التظلمات</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.under_committee_review }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white bg-opacity-10 rounded">
+                        <div class="text-white-50 small">تظلمات مفصول فيها بقرار مجلس الإدارة</div>
+                        <div class="fs-3 fw-bold text-white">{{ directorate_data.resolved_appeals }}</div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <!-- Institutional Track Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-bold">الاعتماد المؤسسي</div>
+                    <div class="fs-2 fw-black text-dark">{{ inst_apps_count }}</div>
+                    <small class="text-success fw-bold"><i class="fa-solid fa-building-columns me-1"></i> طلبات المؤسسات</small>
+                </div>
+                <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle fs-3">
+                    <i class="fa-solid fa-university"></i>
+                </div>
+            </div>
+            <div class="mt-2 pt-2 border-top">
+                <a href="{% url 'accreditation:institutional_list' %}" class="small text-decoration-none fw-bold text-success">
+                    استعراض المسار المؤسسي <i class="fa-solid fa-arrow-left ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Programmatic Track Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-bold">الاعتماد البرامجي</div>
+                    <div class="fs-2 fw-black text-dark">{{ prog_apps_count }}</div>
+                    <small class="text-primary fw-bold"><i class="fa-solid fa-laptop-code me-1"></i> برامج تخصصية</small>
+                </div>
+                <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle fs-3">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+            </div>
+            <div class="mt-2 pt-2 border-top">
+                <a href="{% url 'accreditation:programmatic_list' %}" class="small text-decoration-none fw-bold text-primary">
+                    استعراض المسار البرامجي <i class="fa-solid fa-arrow-left ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Accredited Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-bold">اعتماد كامل (5 سنوات)</div>
+                    <div class="fs-2 fw-black text-dark">{{ full_accredited_count }}</div>
+                    <small class="text-warning fw-bold"><i class="fa-solid fa-award me-1"></i> استيفاء كامل للمعايير</small>
+                </div>
+                <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle fs-3">
+                    <i class="fa-solid fa-certificate"></i>
+                </div>
+            </div>
+            <div class="mt-2 pt-2 border-top">
+                <a href="{% url 'decisions:meetings_list' %}" class="small text-decoration-none fw-bold text-dark">
+                    سجل قرارات المجلس <i class="fa-solid fa-arrow-left ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conditional / Post-Accreditation Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-bold">تحت المتابعة السنوية</div>
+                    <div class="fs-2 fw-black text-dark">{{ conditional_accredited_count|add:full_accredited_count }}</div>
+                    <small class="text-info fw-bold"><i class="fa-solid fa-clock-rotate-left me-1"></i> تحسين ومتابعة دورية</small>
+                </div>
+                <div class="bg-info bg-opacity-10 text-info p-3 rounded-circle fs-3">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+            </div>
+            <div class="mt-2 pt-2 border-top">
+                <a href="{% url 'surveillance:dashboard' %}" class="small text-decoration-none fw-bold text-info">
+                    لوحة المتابعة السنوية <i class="fa-solid fa-arrow-left ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Stages Distribution Bar -->
+<div class="card card-custom p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-diagram-project me-2 text-success"></i> توزيع الطلبات على مراحل دورة العمل الإجرائية الـ 7</h5>
+        <span class="badge bg-light text-muted border">دورة الاعتماد الوطنية</span>
+    </div>
+    
+    <div class="row g-2 text-center">
+        <div class="col">
+            <div class="p-2 border rounded bg-light">
+                <small class="d-block text-muted fw-bold">1. الدراسة الذاتية</small>
+                <span class="fs-4 fw-bold text-dark">{{ stages_stat.stage_1 }}</span>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded bg-light">
+                <small class="d-block text-muted fw-bold">2. الفحص المكتبي</small>
+                <span class="fs-4 fw-bold text-primary">{{ stages_stat.stage_2 }}</span>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded bg-light">
+                <small class="d-block text-muted fw-bold">3. تشكيل اللجان</small>
+                <span class="fs-4 fw-bold text-secondary">{{ stages_stat.stage_3 }}</span>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded bg-light">
+                <small class="d-block text-muted fw-bold">4. الزيارة الميدانية</small>
+                <span class="fs-4 fw-bold text-warning">{{ stages_stat.stage_4 }}</span>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded bg-light">
+                <small class="d-block text-muted fw-bold">5. التقرير وحق الرد</small>
+                <span class="fs-4 fw-bold text-info">{{ stages_stat.stage_5 }}</span>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded bg-light">
+                <small class="d-block text-muted fw-bold">6. قرار الاعتماد</small>
+                <span class="fs-4 fw-bold text-danger">{{ stages_stat.stage_6 }}</span>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded bg-light">
+                <small class="d-block text-muted fw-bold">7. المتابعة الدورية</small>
+                <span class="fs-4 fw-bold text-success">{{ stages_stat.stage_7 }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Applications Table -->
+<div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-folder-open me-2 text-warning"></i> أحدث طلبات الاعتماد المسجلة في النظام</h5>
+        <div>
+            <a href="{% url 'accreditation:institutional_list' %}" class="btn btn-sm btn-outline-success me-2">المسار المؤسسي</a>
+            <a href="{% url 'accreditation:programmatic_list' %}" class="btn btn-sm btn-outline-primary">المسار البرامجي</a>
+        </div>
+    </div>
+
+    {% if recent_applications %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>رقم الطلب</th>
+                    <th>المسار</th>
+                    <th>المؤسسة / البرنامج المستهدف</th>
+                    <th>المرحلة الحالية</th>
+                    <th>الحالة التفصيلية</th>
+                    <th>تاريخ التسجيل</th>
+                    <th class="text-center">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in recent_applications %}
+                <tr>
+                    <td class="fw-bold font-monospace text-primary">{{ app.application_number }}</td>
+                    <td>
+                        {% if app.is_institutional %}
+                        <span class="badge badge-track-inst"><i class="fa-solid fa-university me-1"></i> اعتماد مؤسسي</span>
+                        {% else %}
+                        <span class="badge badge-track-prog"><i class="fa-solid fa-graduation-cap me-1"></i> اعتماد برامجي</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="fw-bold">{{ app.institution.name }}</div>
+                        {% if app.program %}
+                        <small class="text-muted"><i class="fa-solid fa-book-open me-1"></i> برنامج: {{ app.program.name }} ({{ app.program.get_degree_level_display }})</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary p-2">
+                            المرحلة {{ app.current_stage }}: {{ app.get_current_stage_display|slice:"11:35" }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ app.get_status_display }}</span>
+                    </td>
+                    <td><small class="text-muted">{{ app.created_at|date:"Y-m-d" }}</small></td>
+                    <td class="text-center">
+                        <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-eye me-1"></i> فتح ملف الطلب
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="fa-solid fa-folder-open display-4 mb-3 text-secondary"></i>
+        <p class="fs-5">لا توجد طلبات اعتماد مسجلة حالياً.</p>
+        <a href="{% url 'accreditation:application_create' %}" class="btn btn-success">
+            <i class="fa-solid fa-plus me-1"></i> إضافة أول طلب اعتماد
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

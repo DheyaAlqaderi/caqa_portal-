@@ -1,0 +1,439 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تقرير طلب الاعتماد الرسمي | {{ app.application_number }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    @media print {
+        body {
+            background-color: #fff !important;
+            font-size: 12pt;
+        }
+        .no-print, header, nav, footer, .sidebar, .btn, .breadcrumb {
+            display: none !important;
+        }
+        .report-sheet {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+    }
+    .report-sheet {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #dee2e6;
+        padding: 40px;
+        position: relative;
+    }
+    .official-header {
+        border-bottom: 3px double #1a4d2e;
+        padding-bottom: 18px;
+        margin-bottom: 25px;
+    }
+    .official-stamp {
+        border: 2px dashed #1a4d2e;
+        border-radius: 8px;
+        padding: 12px;
+        background-color: #f8faf8;
+        display: inline-block;
+        min-width: 240px;
+    }
+    .badge-status-lg {
+        font-size: 1rem;
+        padding: 8px 16px;
+        border-radius: 6px;
+    }
+    .table-dossier th {
+        background-color: #f4f6f8;
+        width: 32%;
+        color: #333;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Action Bar (hidden on print) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'accreditation:application_detail' app.pk %}">ملف الطلب {{ app.application_number }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">تقرير طلب الاعتماد الرسمي</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0 text-dark">
+                <i class="fa-solid fa-file-invoice text-success me-2"></i>
+                تقرير طلب الاعتماد الأكاديمي الرسمي
+            </h4>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'accounts:library_save_system_asset' %}?asset_type=application&app_id={{ app.pk }}" class="btn btn-warning fw-bold text-dark shadow-sm">
+                <i class="fa-solid fa-bookmark me-1"></i> حفظ نسخة التقرير في مكتبتي
+            </a>
+            {% if not app.president_endorsed and request.user.role in 'UNIVERSITY_PRESIDENT,INSTITUTION_OFFICER,ADMIN' or not app.president_endorsed and request.user.is_superuser %}
+            <button type="button" class="btn btn-success fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#presidentEndorseModal">
+                <i class="fa-solid fa-file-signature me-1"></i> توقيع واعتماد رئيس الجامعة
+            </button>
+            {% endif %}
+            <button onclick="window.print()" class="btn btn-outline-success fw-bold px-3">
+                <i class="fa-solid fa-print me-1"></i> طباعة التقرير / PDF
+            </button>
+            {% if request.user.is_council or request.user.role == 'DG_ACCREDITATION' or request.user.is_board or request.user.is_superuser %}
+            <a href="{% url 'accreditation:board_application_review' app.pk %}" class="btn btn-primary fw-bold">
+                <i class="fa-solid fa-gavel me-1"></i> اتخاذ قرار الموافقة وتحديد التكلفة / الرفض والتعديل
+            </a>
+            {% endif %}
+            <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-right me-1"></i> العودة للملف
+            </a>
+        </div>
+    </div>
+
+    <!-- Official Report Sheet -->
+    <div class="report-sheet">
+        <!-- Official Governmental Header -->
+        <div class="official-header text-center">
+            <div class="row align-items-center">
+                <div class="col-4 text-start">
+                    <div class="fw-bold fs-6 text-dark">الجمهورية اليمنية</div>
+                    <div class="small text-muted">وزارة التعليم العالي والبحث العلمي</div>
+                    <div class="fw-bold small text-success">مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي</div>
+                    <div class="small text-secondary">الإدارة العامة للاعتماد والتراخيص</div>
+                </div>
+                <div class="col-4 text-center">
+                    <div class="p-2 border border-2 border-dark rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 75px; height: 75px; background: #fafafa;">
+                        <i class="fa-solid fa-scale-balanced fs-1 text-success"></i>
+                    </div>
+                    <div class="fw-bold small mt-1 text-uppercase text-muted" style="letter-spacing: 1px;">CAQA - YEMEN</div>
+                </div>
+                <div class="col-4 text-end">
+                    <div class="small text-muted">رقم القيد: <span class="font-monospace fw-bold text-dark">{{ app.application_number }}</span></div>
+                    <div class="small text-muted">تاريخ الإصدار: <span class="fw-bold">{{ now|date:"Y-m-d" }}</span></div>
+                    <div class="small text-muted">رمز التحقق: <span class="font-monospace text-secondary">CAQA-VER-{{ app.pk }}-{{ app.created_at|date:"Y" }}</span></div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="fw-bold text-dark mb-1" style="font-family: inherit;">
+                    تقرير طلب الاعتماد الأكاديمي المعتمد
+                </h3>
+                <div class="text-muted small">
+                    استمارة حصر وتدقيق بيانات طلب الاعتماد قبل مرحلة إعداد التقييم الذاتي
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: Overview Badge -->
+        <div class="d-flex justify-content-between align-items-center p-3 mb-4 rounded bg-light border flex-wrap gap-2">
+            <div>
+                <span class="text-muted fw-bold me-2">حالة الطلب لدى أمانة المجلس:</span>
+                <span class="badge badge-status-lg {% if app.status == 'PENDING_REVIEW' %}bg-warning text-dark{% elif app.status == 'REJECTED' %}bg-danger{% else %}bg-success{% endif %}">
+                    {{ app.get_status_display }}
+                </span>
+            </div>
+            <div>
+                <span class="text-muted fw-bold me-2">مسار الاعتماد:</span>
+                <span class="badge bg-primary fs-6">{{ app.get_track_display }}</span>
+            </div>
+            <div>
+                <span class="text-muted fw-bold me-2">العام الجامعي المستهدف:</span>
+                <span class="fw-bold font-monospace text-dark">{{ app.academic_year|default:"2025/2026" }}</span>
+            </div>
+        </div>
+
+        <!-- Section 2: Institution & Legal Details -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-success border-bottom border-success pb-2 mb-3">
+                <i class="fa-solid fa-building-columns me-2"></i>
+                أولاً: البيانات القانونية والتنظيمية للمؤسسة التعليمية
+            </h5>
+            <table class="table table-bordered table-dossier align-middle">
+                <tbody>
+                    <tr>
+                        <th>اسم الجامعة / المؤسسة:</th>
+                        <td class="fw-bold fs-6 text-dark">{{ app.institution.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>نوع المؤسسة والمقر:</th>
+                        <td>{{ app.institution.get_institution_type_display|default:"جامعة معتمدة" }} - المقر الرئيسي: {{ app.institution.city|default:"الجمهورية اليمنية" }}</td>
+                    </tr>
+                    <tr>
+                        <th>رقم قرار إنشاء / ترخيص المؤسسة:</th>
+                        <td class="font-monospace fw-bold text-primary">{{ establishment_decree_or_license }}</td>
+                    </tr>
+                    <tr>
+                        <th>رئيس الجامعة / المفوض القانوني:</th>
+                        <td class="fw-bold">{{ app.institution.president_name|default:"د. رئيس الجامعة" }}</td>
+                    </tr>
+                    <tr>
+                        <th>عميد مركز التطوير وضمان الجودة:</th>
+                        <td>د. {{ app.institution.quality_center_dean|default:"عميد ضمان الجودة" }}</td>
+                    </tr>
+                    <tr>
+                        <th>ضابط الاتصال المعتمد للطلب:</th>
+                        <td>
+                            {{ app.contact_person_name|default:app.applicant_user.get_full_name|default:app.applicant_user.username }}
+                            {% if app.contact_phone %} | هاتف: <span class="font-monospace">{{ app.contact_phone }}</span>{% endif %}
+                            {% if app.contact_email %} | بريد: <span class="font-monospace">{{ app.contact_email }}</span>{% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>إصدار معايير الاعتماد المطبق:</th>
+                        <td>{{ app.standard_version.title|default:"دليل ومعايير الاعتماد الوطني المعتمدة" }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 3: Programmatic details if applicable -->
+        {% if app.program %}
+        <div class="mb-4">
+            <h5 class="fw-bold text-success border-bottom border-success pb-2 mb-3">
+                <i class="fa-solid fa-graduation-cap me-2"></i>
+                ثانياً: بيانات البرنامج الأكاديمي المستهدف بالاعتماد
+            </h5>
+            <table class="table table-bordered table-dossier align-middle">
+                <tbody>
+                    <tr>
+                        <th>اسم البرنامج الأكاديمي:</th>
+                        <td class="fw-bold text-primary fs-6">{{ app.program.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>الكلية التابع لها:</th>
+                        <td>{{ app.program.college.name|default:"الكلية المختصة" }}</td>
+                    </tr>
+                    <tr>
+                        <th>الدرجة العلمية الممنوحة:</th>
+                        <td>{{ app.program.degree_level|default:"بكالوريوس" }}</td>
+                    </tr>
+                    <tr>
+                        <th>تاريخ بدء البرنامج / الدفع المتخرجة:</th>
+                        <td>{{ app.program.established_year|default:"معتمد ومستوفٍ للدفع المتخرجة" }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Section 4: Presidential Endorsement Box -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-success border-bottom border-success pb-2 mb-3">
+                <i class="fa-solid fa-file-signature me-2"></i>
+                ثالثاً: توثيق وتفويض رئيس الجامعة / المفوض القانوني
+            </h5>
+
+            {% if app.president_endorsed %}
+            <div class="p-4 rounded border border-success bg-success bg-opacity-10">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fa-solid fa-certificate text-success fs-3 me-2"></i>
+                            <h5 class="fw-bold text-success mb-0">تم اعتماد وتوقيع الطلب رسمياً من قِبل رئيس الجامعة</h5>
+                        </div>
+                        <p class="text-secondary mb-2">
+                            بموجب الصلاحيات المخولة قانوناً، أقر بأن البيانات والوثائق الواردة في هذا الطلب صحيحة ومكتملة، وتلتزم الجامعة باللوائح المالية والإجرائية لمجلس الاعتماد الأكاديمي وضمان الجودة.
+                        </p>
+                        <div class="small text-muted">
+                            <div>• الموقع المعتمد: <strong>{{ app.president_endorsed_by.get_full_name|default:app.president_endorsed_by.username }}</strong></div>
+                            <div>• الصفة: <strong>رئيس الجامعة / المفوض القانوني</strong></div>
+                            <div>• رقم قرار / مرجع التفويض: <strong class="font-monospace text-primary">{{ app.president_decree_ref|default:"اعتماد رئاسي مباشر" }}</strong></div>
+                            <div>• تاريخ ووقت التوقيع الرقمي: <strong>{{ app.president_endorsed_at|date:"Y-m-d H:i" }}</strong></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center mt-3 mt-md-0">
+                        <div class="official-stamp text-center">
+                            <i class="fa-solid fa-stamp text-success fs-2 mb-1"></i>
+                            <div class="fw-bold text-success small">ختم رئاسة الجامعة المعتمد</div>
+                            <div class="font-monospace small text-muted">SIGN-ID: PRES-{{ app.institution.pk }}-{{ app.pk }}</div>
+                            <div class="badge bg-success text-white mt-1">توقيع رقمي موثق</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-4 rounded border border-warning bg-warning bg-opacity-10">
+                <div class="d-flex align-items-center">
+                    <i class="fa-solid fa-triangle-exclamation text-warning fs-3 me-3"></i>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1">بانتظار توقيع واعتماد رئيس الجامعة / المفوض القانوني</h6>
+                        <p class="text-muted small mb-0">
+                            هذا الطلب لم يُستكمل توقيعه إلكترونياً بعد من قِبل رئيس الجامعة. يتطلب النظام توقيع رئيس الجامعة لاعتماده بصورة نهائية لدى مدير عام الاعتماد والتراخيص.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Section 5: DG of Accreditation Decision & Instructions -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-success border-bottom border-success pb-2 mb-3">
+                <i class="fa-solid fa-gavel me-2"></i>
+                رابعاً: قرار وتوجيه مدير عام الاعتماد والتراخيص (الأمانة العامة للمجلس)
+            </h5>
+
+            {% if app.cost_amount and app.status != 'REJECTED' %}
+            <div id="approved-paths" class="p-4 rounded border border-primary bg-primary bg-opacity-10">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="fw-bold text-primary mb-2">
+                            <i class="fa-solid fa-circle-check text-success me-2"></i>
+                            قرار القبول المبدئي + تحديد التكلفة المالية + فتح التقييم الذاتي
+                        </h5>
+                        <div class="mb-2">
+                            <span class="text-muted fw-bold">التكلفة المالية المعتمدة:</span>
+                            <span class="fw-bold text-success fs-4 me-2">{{ app.cost_amount|floatformat:2 }} {{ app.cost_currency }}</span>
+                        </div>
+                        {% if app.cost_breakdown_notes %}
+                        <div class="small text-secondary mb-2">
+                            <strong>تفاصيل بنود التكلفة:</strong> {{ app.cost_breakdown_notes }}
+                        </div>
+                        {% endif %}
+                        {% if app.council_approval_notes %}
+                        <div class="small text-dark bg-white p-2 rounded border mb-2">
+                            <strong>توجيهات المجلس للمؤسسة:</strong> {{ app.council_approval_notes }}
+                        </div>
+                        {% endif %}
+                        <div class="small text-muted">
+                            المراجع: <strong>{{ app.reviewed_by.get_full_name|default:app.reviewed_by.username|default:"مدير عام الاعتماد والتراخيص" }}</strong> • 
+                            تاريخ القرار: <strong>{{ app.reviewed_at|date:"Y-m-d H:i"|default:"معتمد" }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center mt-3 mt-md-0">
+                        <div class="official-stamp text-center border-primary bg-white">
+                            <i class="fa-solid fa-award text-primary fs-2 mb-1"></i>
+                            <div class="fw-bold text-primary small">الأمانة العامة لمجلس الاعتماد</div>
+                            <div class="text-secondary small">الإدارة العامة للاعتماد والتراخيص</div>
+                            <div class="badge bg-primary text-white mt-1">معتمد ومقبول مبدئياً</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Two Direct Paths from Initial Approval -->
+                <div class="row g-3 mt-3 pt-3 border-top border-primary no-print">
+                    <div class="col-md-6">
+                        {% if latest_invoice %}
+                        <a href="{% url 'operations:invoice_detail' latest_invoice.pk %}" class="btn btn-primary fw-bold w-100 py-2 shadow-sm">
+                            <i class="fa-solid fa-credit-card me-1"></i> المسار الأول: الانتقال المباشر إلى التسديد المالي ({{ latest_invoice.invoice_number }})
+                        </a>
+                        {% else %}
+                        <a href="{% url 'operations:invoices_list' %}" class="btn btn-primary fw-bold w-100 py-2 shadow-sm">
+                            <i class="fa-solid fa-credit-card me-1"></i> المسار الأول: الانتقال المباشر إلى التسديد المالي
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'accreditation:self_study_indicators_edit' app.pk %}" class="btn btn-success fw-bold w-100 py-2 shadow-sm">
+                            <i class="fa-solid fa-file-pen me-1"></i> المسار الثاني: الانتقال المباشر إلى إعداد التقييم الذاتي (SSR)
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% elif app.status == 'REJECTED' or app.status == 'RETURNED_FOR_MODIFICATION' %}
+            <div id="resubmit-section" class="p-4 rounded border border-danger bg-danger bg-opacity-10">
+                <h5 class="fw-bold text-danger mb-2">
+                    <i class="fa-solid fa-circle-xmark me-2"></i>
+                    قرار عدم قبول الطلب / إعادته للتعديل واستيفاء النواقص
+                </h5>
+                <div class="bg-white p-3 rounded border border-danger text-dark mb-2">
+                    <strong class="text-danger">أسباب ومبررات التعديل / عدم القبول الرسمية:</strong>
+                    <p class="mb-0 mt-1">{{ app.rejection_reason|default:"الطلب بحاجة لاستيفاء الشروط القانونية والتنظيمية وإعادة التقديم." }}</p>
+                </div>
+                <div class="small text-muted mb-3">
+                    المراجع: <strong>{{ app.reviewed_by.get_full_name|default:app.reviewed_by.username|default:"مدير عام الاعتماد والتراخيص" }}</strong> • 
+                    تاريخ القرار: <strong>{{ app.reviewed_at|date:"Y-m-d H:i" }}</strong>
+                </div>
+                <div class="no-print">
+                    <a href="{% url 'accreditation:application_resubmit' app.pk %}" class="btn btn-danger fw-bold px-4 shadow-sm">
+                        <i class="fa-solid fa-file-pen me-1"></i> الانتقال المباشر لتعديل تقرير الطلب وإعادة إرساله لمدير عام الاعتماد
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-4 rounded border border-secondary bg-light text-muted">
+                <i class="fa-solid fa-hourglass-half me-2"></i>
+                الطلب حالياً قيد المراجعة والدراسة من قِبل الإدارة العامة للاعتماد والتراخيص لتحديد التكلفة وإصدار توجيه التقييم الذاتي.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Section 6: Official Sign-off & Verification Footer -->
+        <div class="mt-5 pt-3 border-top">
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="fw-bold small text-muted">ضابط الجودة والاتصال بالمؤسسة</div>
+                    <div class="mt-4 fw-bold">{{ app.applicant_user.get_full_name|default:app.applicant_user.username }}</div>
+                </div>
+                <div class="col-4">
+                    <div class="fw-bold small text-muted">رئيس الجامعة / المفوض القانوني</div>
+                    <div class="mt-4 fw-bold">
+                        {% if app.president_endorsed %}
+                            {{ app.president_endorsed_by.get_full_name|default:app.president_endorsed_by.username }}
+                            <div class="small text-success"><i class="fa-solid fa-check me-1"></i> موقّع رسمياً</div>
+                        {% else %}
+                            <span class="text-muted">(بانتظار التوقيع)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="fw-bold small text-muted">مدير عام الاعتماد والتراخيص</div>
+                    <div class="mt-4 fw-bold">
+                        {% if app.cost_amount %}
+                            {{ app.reviewed_by.get_full_name|default:"أمانة المجلس" }}
+                            <div class="small text-primary"><i class="fa-solid fa-stamp me-1"></i> معتمد مبدئياً</div>
+                        {% else %}
+                            <span class="text-muted">(قيد الدراسة)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center text-muted small mt-4 pt-3 border-top no-print">
+            مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي - الجمهورية اليمنية | وثيقة رسمية صادرة عن النظام الإلكتروني الموحد
+        </div>
+    </div>
+</div>
+
+<!-- Modal: University President Endorsement directly from Application Report -->
+<div class="modal fade no-print" id="presidentEndorseModal" tabindex="-1" aria-labelledby="presidentEndorseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'accreditation:president_endorse' app.pk %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="presidentEndorseModalLabel">
+                        <i class="fa-solid fa-file-signature me-2"></i> توقيع وتفويض رئيس الجامعة الرسمي على تقرير الطلب
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-success">رقم وتاريخ قرار / تفويض رئيس الجامعة:</label>
+                            <input type="text" name="president_decree_ref" class="form-control" placeholder="مثال: قرار رئيس الجامعة رقم (45) لسنة 2026" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">توجيهات وملاحظات رئيس الجامعة:</label>
+                            <textarea name="president_notes" class="form-control" rows="3" placeholder="توجيهات معالي رئيس الجامعة..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4">
+                        <i class="fa-solid fa-stamp me-1"></i> توقيع واعتماد تقرير الطلب رسمياً
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

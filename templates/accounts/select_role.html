@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}تحديد الدور المطلوب | مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-lg-8">
+        <div class="card card-custom shadow border-0 p-4 mb-4">
+            <div class="text-center border-bottom pb-3 mb-4">
+                <span class="badge bg-warning text-dark px-3 py-2 fs-6 mb-2">الخطوة الثانية: طلب تحديد الدور والصلاحية</span>
+                <h3 class="fw-bold text-dark">تحديد صفتك الرسمية في المنظومة</h3>
+                <p class="text-muted small">يرجى اختيار الدور الذي ترغب في اعتماده لحسابك. تخضع الطلبات لموافقة مدير النظام.</p>
+            </div>
+
+            <form method="POST" action="{% url 'accounts:select_role' %}">
+                {% csrf_token %}
+
+                <div class="row g-3 mb-4">
+                    <!-- Option 1: Institution Officer -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border p-3 role-card text-center" onclick="selectRoleRadio('INSTITUTION_OFFICER')">
+                            <div class="display-5 text-success mb-2"><i class="fa-solid fa-university"></i></div>
+                            <h5 class="fw-bold text-dark">ممثل مؤسسة تعليمية</h5>
+                            <p class="small text-muted mb-3">عميد مركز الجودة، رئيس الجامعة، أو منسق معتمد لتقديم ومتابعة طلبات الاعتماد المؤسسي والبرامجي.</p>
+                            <input class="form-check-input mx-auto mt-auto" type="radio" name="requested_role" id="role_inst" value="INSTITUTION_OFFICER" checked>
+                        </div>
+                    </div>
+
+                    <!-- Option 2: External Reviewer -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border p-3 role-card text-center" onclick="selectRoleRadio('EXTERNAL_REVIEWER')">
+                            <div class="display-5 text-primary mb-2"><i class="fa-solid fa-user-tie"></i></div>
+                            <h5 class="fw-bold text-dark">مُحكّم ومقيم خارجي</h5>
+                            <p class="small text-muted mb-3">خبير أكاديمي معتمد في السجل الوطني للمحكمين للقيام بمهام المراجعة الخارجية والزيارات الميدانية.</p>
+                            <input class="form-check-input mx-auto mt-auto" type="radio" name="requested_role" id="role_rev" value="EXTERNAL_REVIEWER">
+                        </div>
+                    </div>
+
+                    <!-- Option 3: Council Staff -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border p-3 role-card text-center" onclick="selectRoleRadio('COUNCIL_SECRETARY')">
+                            <div class="display-5 text-warning mb-2"><i class="fa-solid fa-clipboard-check"></i></div>
+                            <h5 class="fw-bold text-dark">أمانة المجلس الفنية</h5>
+                            <p class="small text-muted mb-3">موظف أو عضو بالإدارة الفنية للاعتماد لمراجعة الطلبات، الفحص المكتبي، وتنسيق اللجان.</p>
+                            <input class="form-check-input mx-auto mt-auto" type="radio" name="requested_role" id="role_sec" value="COUNCIL_SECRETARY">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Fields based on Selection -->
+                <div class="card bg-light border p-4 mb-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i> بيانات إضافية للتحقق والاعتماد:</h6>
+
+                    <!-- Institution Specific -->
+                    <div id="inst_fields" class="mb-3">
+                        <label class="form-label fw-bold">المؤسسة التعليمية التي تمثلها رسمياً:</label>
+                        <select name="institution_id" class="form-select form-select-lg">
+                            <option value="">-- اختر المؤسسة التعليمية (الجامعة / الكلية) --</option>
+                            {% for inst in institutions %}
+                            <option value="{{ inst.id }}">{{ inst.name }} ({{ inst.get_institution_type_display }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">ملاحظة: سيتم التحقق من تفويض المؤسسة لك قبل تفعيل الصلاحية.</small>
+                    </div>
+
+                    <!-- Reviewer Specific -->
+                    <div id="reviewer_fields" class="d-none">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">اللقب العلمي:</label>
+                                <select name="academic_title" class="form-select">
+                                    <option value="أستاذ دكتور (بروفيسور)">أستاذ دكتور (بروفيسور)</option>
+                                    <option value="أستاذ مشارك">أستاذ مشارك</option>
+                                    <option value="أستاذ مساعد">أستاذ مساعد</option>
+                                    <option value="دكتور">دكتور</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">التخصص الدقيق:</label>
+                                <input type="text" name="specialization" class="form-control" placeholder="مثال: هندسة برمجيات، طب جراحة، إدارة أعمال">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">رقم وتاريخ شهادة ترخيص المحكّم الوطني (إن وجد):</label>
+                            <input type="text" name="evaluator_certificate_number" class="form-control" placeholder="رقم القيد في السجل الوطني للمحكمين">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ملاحظات ومبررات طلب الانضمام:</label>
+                        <textarea name="role_request_notes" class="form-control" rows="3" placeholder="اكتب أي بيانات إضافية أو مراجع وظيفية لمساعدة مدير النظام في التحقق والاعتماد..."></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'accounts:logout' %}" class="btn btn-outline-danger">إلغاء وتسجيل الخروج</a>
+                    <button type="submit" class="btn btn-warning btn-lg fw-bold px-5">
+                        <i class="fa-solid fa-paper-plane me-2"></i> إرسال طلب الاعتماد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectRoleRadio(roleVal) {
+    document.querySelectorAll('input[name="requested_role"]').forEach(function(r) {
+        if(r.value === roleVal) {
+            r.checked = true;
+        }
+    });
+    toggleRoleFields();
+}
+
+function toggleRoleFields() {
+    var selected = document.querySelector('input[name="requested_role"]:checked').value;
+    var instDiv = document.getElementById('inst_fields');
+    var revDiv = document.getElementById('reviewer_fields');
+
+    if (selected === 'INSTITUTION_OFFICER') {
+        instDiv.classList.remove('d-none');
+        revDiv.classList.add('d-none');
+    } else if (selected === 'EXTERNAL_REVIEWER') {
+        instDiv.classList.add('d-none');
+        revDiv.classList.remove('d-none');
+    } else {
+        instDiv.classList.add('d-none');
+        revDiv.classList.add('d-none');
+    }
+}
+
+document.querySelectorAll('input[name="requested_role"]').forEach(function(radio) {
+    radio.addEventListener('change', toggleRoleFields);
+});
+</script>
+
+<style>
+.role-card {
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 10px;
+}
+.role-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    border-color: #0b6848 !important;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}الملف العام للبرنامج: {{ program.name }} | السجل الوطني للاعتماد{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 my-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'public_registry' %}"><i class="fa-solid fa-certificate me-1"></i> السجل الوطني للاعتماد</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'public_registry' %}?tab=programs">البرامج الأكاديمية</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'public_institution_detail' institution.pk %}">{{ institution.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ program.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Main Details Column -->
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 mb-4 border-0 shadow-sm">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-light text-primary border font-monospace fs-6">{{ program.code }}</span>
+                    <span class="badge bg-primary fs-6">{{ program.get_degree_level_display }}</span>
+                    <span class="badge bg-light text-dark"><i class="fa-solid fa-clock me-1"></i> {{ program.study_duration_years }} سنوات دراسية</span>
+                    <span class="badge bg-light text-dark"><i class="fa-solid fa-layer-group me-1"></i> {{ program.total_credit_hours }} ساعة معتمدة</span>
+                </div>
+
+                <h2 class="fw-bold text-dark mb-1">{{ program.name }}</h2>
+                <div class="text-muted fs-6 mb-3">
+                    <i class="fa-solid fa-building-columns text-secondary me-1"></i> {{ college.name }} • 
+                    <a href="{% url 'public_institution_detail' institution.pk %}" class="fw-bold text-decoration-none">
+                        {{ institution.name }}
+                    </a> ({{ institution.governorate }})
+                </div>
+
+                <!-- Accreditation Official Status Box -->
+                <div class="p-3 rounded mb-4 {% if prog_cert and prog_cert.status == 'ACTIVE' and not prog_cert.is_revoked %}bg-success bg-opacity-10 border border-success{% elif prog_cert and prog_cert.status == 'SUSPENDED' %}bg-warning bg-opacity-10 border border-warning{% else %}bg-light border{% endif %}">
+                    {% if prog_cert and prog_cert.status == 'ACTIVE' and not prog_cert.is_revoked %}
+                    <div class="d-flex align-items-center gap-2 text-success fw-bold fs-5 mb-1">
+                        <i class="fa-solid fa-circle-check fs-4"></i> برنامج أكاديمي معتمد رسمياً (ساري المفعول)
+                    </div>
+                    <div class="text-muted">
+                        تم منح هذا البرنامج شهادة الاعتماد الأكاديمي الوطني بموجب قرار مجلس الاعتماد رقم 
+                        <strong>{{ prog_cert.decision.decree_number }}</strong> الصادر بتاريخ {{ prog_cert.decision.decision_date }}.
+                    </div>
+                    <div class="mt-2 d-flex flex-wrap gap-3 font-monospace small">
+                        <div>رقم القيد الوطني: <strong class="text-primary">{{ prog_cert.national_registry_code }}</strong></div>
+                        <div>سريان الاعتماد: من <strong>{{ prog_cert.decision.start_date }}</strong> حتى <strong>{{ prog_cert.decision.expiry_date }}</strong></div>
+                    </div>
+                    {% elif prog_cert and prog_cert.status == 'SUSPENDED' %}
+                    <div class="d-flex align-items-center gap-2 text-warning fw-bold fs-5 mb-1">
+                        <i class="fa-solid fa-triangle-exclamation fs-4"></i> وثيقة الاعتماد معلقة مؤقتاً
+                    </div>
+                    <div class="text-danger small">
+                        تنبيه: تم تعليق سريان شهادة اعتماد هذا البرنامج بقرار رسمي من المجلس لحين استيفاء شروط المتابعة.
+                    </div>
+                    {% else %}
+                    <div class="d-flex align-items-center gap-2 text-secondary fw-bold fs-6 mb-1">
+                        <i class="fa-solid fa-circle-info fs-5"></i> برنامج مرخص وزارياً • بانتظار استكمال دورة الاعتماد الأكاديمي
+                    </div>
+                    <div class="text-muted small">
+                        البرنامج حاصل على ترخيص وزارة التعليم العالي، وهو مدرج في خطط التقويم والاعتماد الأكاديمي.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Program Specifications Table -->
+                <h5 class="fw-bold text-dark mb-3">
+                    <i class="fa-solid fa-clipboard-list text-primary me-2"></i> المواصفات الأكاديمية والترخيص
+                </h5>
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered align-middle">
+                        <tbody>
+                            <tr>
+                                <th class="bg-light" style="width: 250px;">الدرجة والمستوى العلمي:</th>
+                                <td class="fw-bold">{{ program.get_degree_level_display }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">قرار فتح وترخيص البرنامج (الوزارة):</th>
+                                <td class="fw-bold text-primary">{{ program.ministry_approval_decree|default:'مرخص بموجب قرارات وزارة التعليم العالي والبحث العلمي' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">نظام الدراسة:</th>
+                                <td>{{ program.get_study_system_display }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">مدة الدراسة المقررة:</th>
+                                <td>{{ program.study_duration_years }} سنوات دراسية</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">إجمالي الساعات المعتمدة:</th>
+                                <td>{{ program.total_credit_hours }} ساعة</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">الكلية والجامعة:</th>
+                                <td>{{ college.name }} - {{ institution.name }} ({{ institution.governorate }})</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{% url 'public_registry' %}?tab=programs" class="btn btn-outline-secondary fw-bold">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة لقائمة البرامج
+                    </a>
+                    {% if prog_cert %}
+                    <a href="{% url 'decisions:verify_certificate_public' prog_cert.certificate_uuid %}" target="_blank" class="btn btn-success fw-bold">
+                        <i class="fa-solid fa-qrcode me-1"></i> استعراض وثيقة التحقق الرقمي الرسمية
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar: Student & Employer Advisory -->
+        <div class="col-lg-4">
+            <!-- Advisory Card -->
+            <div class="card card-custom p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #091a29 0%, #0f2c42 100%); color: #fff;">
+                <div class="d-flex align-items-center gap-2 mb-3 text-warning">
+                    <i class="fa-solid fa-user-graduate fs-3"></i>
+                    <h5 class="fw-bold mb-0">إرشادات هامة للطلاب</h5>
+                </div>
+                <p class="small text-white-50 mb-3 leading-relaxed">
+                    يحرص مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي على توعية الطلاب قبل التسجيل بالبرامج الأكاديمية:
+                </p>
+                <ul class="small text-white-50 ps-3 mb-0" style="line-height: 1.8;">
+                    <li>تأكد دائماً من وجود قرار ترخيص رسمي لفتح البرنامج صادر عن وزارة التعليم العالي.</li>
+                    <li>البرامج الحاصلة على الاعتماد الأكاديمي الوطني تحظى شهادات خريجيها باعتراف محلي ودولي وأولوية في سوق العمل.</li>
+                    <li>يمكنك التحقق من صحة أي وثيقة اعتماد يدعيها مندوبو الجامعات عبر هذا السجل الوطني.</li>
+                </ul>
+            </div>
+
+            <!-- Institution Quick Contact -->
+            <div class="card card-custom p-4 border-0 shadow-sm">
+                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-building-columns text-primary me-2"></i> معلومات المؤسسة التعليمية</h6>
+                <div class="small text-muted mb-2">
+                    <div><strong>الجامعة:</strong> {{ institution.name }}</div>
+                    <div><strong>النوع:</strong> {{ institution.get_institution_type_display }}</div>
+                    <div><strong>المقر:</strong> {{ institution.governorate }}</div>
+                    {% if institution.official_phone %}
+                    <div><strong>الهاتف:</strong> {{ institution.official_phone }}</div>
+                    {% endif %}
+                    {% if institution.official_email %}
+                    <div><strong>البريد:</strong> {{ institution.official_email }}</div>
+                    {% endif %}
+                </div>
+                <a href="{% url 'public_institution_detail' institution.pk %}" class="btn btn-sm btn-outline-primary w-100 fw-bold mt-2">
+                    عرض الملف الكامل للمؤسسة
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

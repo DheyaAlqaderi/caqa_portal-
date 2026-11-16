@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة استثناءات المستخدمين | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="row my-4">
+    <div class="col-12">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-info mb-1">الاستثناءات الفردية المؤقتة</span>
+                    <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-shield text-info me-2"></i> إدارة استثناءات الصلاحيات للمستخدمين</h3>
+                    <small class="text-muted">منح أو حجب استثنائي مقيد بسبب وتاريخ انتهاء مع حفظ السجل التاريخي الكامل للأرشفة</small>
+                </div>
+                <div>
+                    <a href="{% url 'accounts:permission_matrix' %}" class="btn btn-outline-primary">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة لمصفوفة الصلاحيات
+                    </a>
+                </div>
+            </div>
+
+            <!-- Create Override Form Card -->
+            <div class="card mb-4 border-info shadow-sm">
+                <div class="card-header bg-info bg-opacity-10 py-3">
+                    <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-plus-circle me-2"></i> إضافة استثناء فردي جديد</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'accounts:user_overrides' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="create_override">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">المستخدم المستهدف <span class="text-danger">*</span></label>
+                                <select name="target_user_id" class="form-select" required>
+                                    <option value="">-- اختر المستخدم --</option>
+                                    {% for u in users_list %}
+                                    <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }} ({{ u.username }} - {{ u.get_role_display }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الصلاحية المستهدفة <span class="text-danger">*</span></label>
+                                <select name="permission_id" class="form-select" required>
+                                    <option value="">-- اختر الصلاحية --</option>
+                                    {% for p in permissions_list %}
+                                    <option value="{{ p.id }}">{{ p.name }} ({{ p.codename }}) {% if p.is_governance_locked %}[مقيدة بالحوكمة]{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">نوع الاستثناء <span class="text-danger">*</span></label>
+                                <select name="override_type" class="form-select" required>
+                                    <option value="GRANT">منح استثنائي (GRANT)</option>
+                                    <option value="REVOKE">حجب استثنائي (REVOKE)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">تاريخ الانتهاء (اختياري)</label>
+                                <input type="date" name="expires_at" class="form-control">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">السبب الإداري والمبرر الرسمي <span class="text-danger">*</span></label>
+                                <textarea name="reason" class="form-control" rows="2" placeholder="اكتب مبرر الاستثناء وأسباب منحه أو حجبه بدقة..." required></textarea>
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="fa-solid fa-save me-1"></i> حفظ وتطبيق الاستثناء
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Active Overrides Table -->
+            <div class="card mb-4 border shadow-sm">
+                <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold text-success mb-0"><i class="fa-solid fa-toggle-on me-2"></i> الاستثناءات النشطة الحالية ({{ active_overrides.count }})</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>الصلاحية</th>
+                                <th>النوع</th>
+                                <th>السبب والمبرر</th>
+                                <th>تاريخ الانتهاء</th>
+                                <th>مُعد الاستثناء</th>
+                                <th class="text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for o in active_overrides %}
+                            <tr>
+                                <td>
+                                    <strong>{{ o.user.get_full_name|default:o.user.username }}</strong>
+                                    <br><small class="text-muted">{{ o.user.username }} ({{ o.user.get_role_display }})</small>
+                                </td>
+                                <td>
+                                    <span class="fw-bold">{{ o.permission.name }}</span>
+                                    <br><code class="small text-secondary">{{ o.permission.codename }}</code>
+                                </td>
+                                <td>
+                                    {% if o.override_type == 'GRANT' %}
+                                    <span class="badge bg-success p-2"><i class="fa-solid fa-check me-1"></i> منح استثنائي</span>
+                                    {% else %}
+                                    <span class="badge bg-danger p-2"><i class="fa-solid fa-ban me-1"></i> حجب استثنائي</span>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-dark">{{ o.reason }}</small></td>
+                                <td>
+                                    {% if o.expires_at %}
+                                        {% if o.is_expired %}
+                                        <span class="badge bg-secondary">منتهٍ: {{ o.expires_at|date:"Y-m-d" }}</span>
+                                        {% else %}
+                                        <span class="text-primary">{{ o.expires_at|date:"Y-m-d" }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">دائم (حتى الإلغاء)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ o.granted_by.username|default:"النظام" }}</small>
+                                    <br><small class="text-muted">{{ o.created_at|date:"Y-m-d" }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <form method="post" action="{% url 'accounts:user_overrides' %}" class="d-inline" onsubmit="return confirmRevoke(this);">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="revoke_active">
+                                        <input type="hidden" name="override_id" value="{{ o.id }}">
+                                        <input type="hidden" name="reason" value="">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fa-solid fa-trash-can me-1"></i> إلغاء وأرشفة
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">لا توجد أي استثناءات فردية نشطة حالياً.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Archived Overrides History -->
+            <div class="card border shadow-sm">
+                <div class="card-header bg-light py-3">
+                    <h5 class="fw-bold text-secondary mb-0"><i class="fa-solid fa-box-archive me-2"></i> سجل الأرشيف التاريخي للاستثناءات الملغاة (آخر 30 استثناء)</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-muted small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>الصلاحية</th>
+                                <th>النوع</th>
+                                <th>السبب الأصلي</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>تاريخ الإلغاء/الأرشفة</th>
+                                <th>تم الإلغاء بواسطة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in archived_overrides %}
+                            <tr>
+                                <td>{{ a.user.username }} ({{ a.user.get_role_display }})</td>
+                                <td>{{ a.permission.name }}</td>
+                                <td>{{ a.get_override_type_display }}</td>
+                                <td>{{ a.reason|truncatechars:40 }}</td>
+                                <td>{{ a.created_at|date:"Y-m-d" }}</td>
+                                <td>{{ a.revoked_at|date:"Y-m-d H:i" }}</td>
+                                <td>{{ a.revoked_by.username|default:"النظام" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-3">لا توجد أي سجلات مؤرشفة بعد.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmRevoke(form) {
+    const reason = prompt('يرجى إدخال سبب إلغاء وأرشفة هذا الاستثناء الفردي:');
+    if (!reason || !reason.trim()) {
+        if (reason !== null) {
+            alert('السبب إلزامي لأرشفة الاستثناء.');
+        }
+        return false;
+    }
+    form.querySelector('input[name="reason"]').value = reason.trim();
+    return true;
+}
+</script>
+{% endblock %}

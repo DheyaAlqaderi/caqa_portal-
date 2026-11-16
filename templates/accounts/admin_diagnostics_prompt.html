@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}طلب تصريح دخول التشخيص الفني | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-5">
+    <div class="col-md-6">
+        <div class="card card-custom p-4 shadow-sm border-warning">
+            <div class="text-center mb-4">
+                <div class="avatar-lg bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex p-3 mb-2">
+                    <i class="fa-solid fa-stethoscope fa-3x"></i>
+                </div>
+                <h4 class="fw-bold text-dark mt-2">وضع التشخيص الفني المقيد للمنظومة</h4>
+                <p class="text-muted small">هذا الوضع مخصص للأغراض التقنية وتشخيص حالة النظام للقراءة فقط. يُشترط إدخال سبب رسمي مسبب للدخول وسيتم توثيقه في سجل التدقيق الأمني بشكل دائم.</p>
+            </div>
+
+            <form method="get" action="{% url 'accounts:admin_diagnostics' %}">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">السبب والمبرر الفني للدخول <span class="text-danger">*</span></label>
+                    <textarea name="diagnostic_reason" class="form-control" rows="3" placeholder="مثال: فحص صحة اتصالات قاعدة البيانات ومتابعة سجلات التذكيرات المجدولة بعد التحديث..." required></textarea>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-warning py-2 fw-bold text-dark">
+                        <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> تأكيد الدخول وتوثيق الجلسة
+                    </button>
+                    <a href="{% url 'core_dashboard' %}" class="btn btn-outline-secondary py-2">
+                        إلغاء والعودة للرئيسية
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

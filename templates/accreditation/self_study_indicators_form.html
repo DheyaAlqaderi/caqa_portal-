@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% load accreditation_tags %}
+
+{% block title %}استمارة إعداد الدراسة والتقييم الذاتي | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header & Progress Sticky Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-file-pen text-success me-2"></i>
+                استمارة إعداد الدراسة والتقييم الذاتي (SSR)
+            </h3>
+            <p class="text-muted mb-0">
+                طلب رقم: <span class="font-monospace fw-bold text-primary">{{ app.application_number }}</span> |
+                {{ app.institution.name }} {% if app.program %}- {{ app.program.name }}{% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-right me-1"></i> العودة للطلب
+            </a>
+            <a href="{% url 'accreditation:self_study_report_view' app.pk %}" class="btn btn-outline-info">
+                <i class="fa-solid fa-eye me-1"></i> معاينة التقرير الشامل
+            </a>
+        </div>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="card card-custom p-3 mb-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold">نسبة إنجاز تقييم المؤشرات:</span>
+            <span class="badge bg-success fs-6">{{ completed_count }} من أصل {{ total_indicators_count }} مؤشراً ({{ progress_percentage }}%)</span>
+        </div>
+        <div class="progress" style="height: 12px;">
+            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ progress_percentage }}%;" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+
+    {% if ssr.is_locked %}
+    <div class="alert alert-warning d-flex align-items-center mb-4">
+        <i class="fa-solid fa-lock fs-3 me-3 text-warning"></i>
+        <div>
+            <strong>تنبيه: التقرير مقفل رسمياً!</strong> لقد تم تسليم تقرير التقييم الذاتي رسمياً إلى مجلس الاعتماد الأكاديمي، وهو الآن في مرحلة الفحص المكتبي. لا يمكن تعديل البيانات.
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="POST" id="ssrForm">
+        {% csrf_token %}
+
+        <!-- Part 1: General Self-Study Information -->
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                <i class="fa-solid fa-circle-info text-primary me-2"></i>
+                أولاً: بيانات عامة عن دراسة التقييم الذاتي
+            </h5>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">أعضاء ولجان التقييم الذاتي المشكلة بالجامعة:</label>
+                <textarea name="internal_committee_names" rows="2" class="form-control" placeholder="أسماء وتخصصات رئيس وأعضاء لجنة الجودة والتقييم الذاتي المكلفة..." {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.internal_committee_names|default:'' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">المنهجية المتبعة في إعداد الدراسة الذاتية:</label>
+                <textarea name="methodology" rows="3" class="form-control" placeholder="توضيح منهجية جمع البيانات والشواهد وإشراك المستفيدين والتحليل الإحصائي..." {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.methodology|default:'' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">الملخص التنفيذي للدراسة الذاتية:</label>
+                <textarea name="executive_summary" rows="4" class="form-control" placeholder="ملخص موجز لنتائج التقييم الذاتي وأهم المحاور..." {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.executive_summary|default:'' }}</textarea>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">ملخص عام لجوانب القوة المؤسسية / البرامجية:</label>
+                    <textarea name="strengths_overview" rows="3" class="form-control" placeholder="أهم نقاط القوة البارزة..." {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.strengths_overview|default:'' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">ملخص عام لفرص التحسين والتحديات:</label>
+                    <textarea name="weaknesses_and_challenges" rows="3" class="form-control" placeholder="أبرز التحديات التي تواجه المؤسسة..." {% if ssr.is_locked %}readonly{% endif %}>{{ ssr.weaknesses_and_challenges|default:'' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Part 2: Detailed Indicators Assessment by Standard Category -->
+        <h5 class="fw-bold text-dark mb-3">
+            <i class="fa-solid fa-list-check text-success me-2"></i>
+            ثانياً: تقييم المعايير والمؤشرات التفصيلية وخطة التحسين
+        </h5>
+
+        {% for category in categories %}
+        <div class="card card-custom p-4 mb-4 border-top border-primary border-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold text-primary mb-0">
+                        {{ category.code }}: {{ category.title }}
+                    </h5>
+                    <small class="text-muted">الوزن النسبي للمعيار: {{ category.weight_percentage }}%</small>
+                </div>
+                <span class="badge bg-primary rounded-pill">{{ category.indicators.count }} مؤشرات</span>
+            </div>
+
+            {% for indicator in category.indicators.all %}
+            {% with resp=existing_responses|get_item:indicator.id %}
+            <div class="border rounded p-3 mb-3 bg-light">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge bg-dark font-monospace me-2">{{ indicator.code }}</span>
+                        <span class="fw-bold text-dark">{{ indicator.title }}</span>
+                        {% if indicator.is_core_standard %}
+                        <span class="badge bg-danger ms-2">مؤشر أساسي إلزامي</span>
+                        {% endif %}
+                    </div>
+                    {% if resp %}
+                    <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> مكتمل</span>
+                    {% else %}
+                    <span class="badge bg-secondary"><i class="fa-solid fa-clock me-1"></i> لم يُقيّم بعد</span>
+                    {% endif %}
+                </div>
+
+                {% if indicator.explanation %}
+                <div class="small text-muted mb-2">
+                    <strong>شرح المؤشر:</strong> {{ indicator.explanation }}
+                </div>
+                {% endif %}
+
+                {% if indicator.suggested_evidences %}
+                <div class="small text-info mb-3">
+                    <strong>الشواهد والأدلة المقترحة:</strong> {{ indicator.suggested_evidences }}
+                </div>
+                {% endif %}
+
+                <!-- Form Fields per Indicator -->
+                <div class="row g-2 mb-2">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold small text-dark">مستوى الاستيفاء والتحقق الذاتي: <span class="text-danger">*</span></label>
+                        <select name="compliance_{{ indicator.id }}" class="form-select form-select-sm" {% if ssr.is_locked %}disabled{% endif %}>
+                            <option value="">-- اختر مستوى الاستيفاء --</option>
+                            {% for c_code, c_lbl in compliance_choices %}
+                            <option value="{{ c_code }}" {% if resp and resp.compliance_level == c_code %}selected{% endif %}>
+                                {{ c_lbl }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-bold small text-dark">مبررات التقييم الذاتي وشرح واقع المؤسسة بالمؤشر:</label>
+                    <textarea name="justification_{{ indicator.id }}" rows="2" class="form-control form-control-sm" placeholder="بيان واقع حال المؤسسة/البرنامج وتبرير مستوى الاستيفاء المختار..." {% if ssr.is_locked %}readonly{% endif %}>{{ resp.justification|default:'' }}</textarea>
+                </div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-success">نقاط القوة والأدلة الداعمة:</label>
+                        <textarea name="strengths_{{ indicator.id }}" rows="2" class="form-control form-control-sm" placeholder="جوانب القوة الخاصة بهذا المؤشر..." {% if ssr.is_locked %}readonly{% endif %}>{{ resp.strengths|default:'' }}</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-warning">فجوات التطبيق ونقاط التحسين:</label>
+                        <textarea name="gaps_{{ indicator.id }}" rows="2" class="form-control form-control-sm" placeholder="الفجوات أو أوجه القصور المرصودة..." {% if ssr.is_locked %}readonly{% endif %}>{{ resp.gaps_and_weaknesses|default:'' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-dark">الإجراءات والخطط التصحيحية المقترحة:</label>
+                        <textarea name="corrective_{{ indicator.id }}" rows="2" class="form-control form-control-sm" placeholder="الإجراءات لمعالجة الفجوات..." {% if ssr.is_locked %}readonly{% endif %}>{{ resp.corrective_actions|default:'' }}</textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-dark">الجهة المسؤولة عن التنفيذ:</label>
+                        <input type="text" name="responsible_{{ indicator.id }}" value="{{ resp.responsible_party|default:'' }}" class="form-control form-control-sm" placeholder="مثال: عمادة الكلية / مركز التطوير" {% if ssr.is_locked %}readonly{% endif %}>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-dark">التاريخ المستهدف للإنجاز:</label>
+                        <input type="date" name="target_date_{{ indicator.id }}" value="{{ resp.target_completion_date|date:'Y-m-d'|default:'' }}" class="form-control form-control-sm" {% if ssr.is_locked %}readonly{% endif %}>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        <!-- Bottom Action Bar -->
+        {% if not ssr.is_locked or request.user.is_staff %}
+        <div class="card card-custom p-4 sticky-bottom shadow-lg border-top border-success border-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <span class="fw-bold">المؤشرات المكتملة: {{ completed_count }} / {{ total_indicators_count }}</span>
+                    {% if completed_count < total_indicators_count %}
+                    <span class="text-danger small ms-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> يجب استكمال كافة المؤشرات قبل الإرسال الرسمي</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-outline-success px-4">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> حفظ مؤقت كمسودة
+                    </button>
+                    <button type="submit" name="submit_self_study_official" value="1" class="btn btn-success px-4 fw-bold" onclick="return confirm('هل أنت متأكد من تسليم تقرير التقييم الذاتي رسمياً إلى مجلس الاعتماد؟ سيتم قفل التعديل وتحويل الطلب لمرحلة الفحص المكتبي.');">
+                        <i class="fa-solid fa-paper-plane me-1"></i> تسليم التقييم الذاتي رسمياً للمجلس
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

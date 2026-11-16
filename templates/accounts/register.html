@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}إنشاء حساب جديد | مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center my-4">
+    <div class="col-md-7 col-lg-6">
+        <div class="card card-custom shadow-lg border-0 overflow-hidden">
+            <div class="p-4 text-center text-white" style="background: linear-gradient(135deg, #0b6848 0%, #0f1e2f 100%);">
+                <i class="fa-solid fa-user-plus text-warning display-4 mb-2"></i>
+                <h4 class="fw-bold mb-1">تسجيل مستخدم جديد في البوابة</h4>
+                <p class="text-white-50 small mb-0">مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي - الجمهورية اليمنية</p>
+            </div>
+            
+            <div class="card-body p-4">
+                <div class="alert alert-info border small mb-4">
+                    <i class="fa-solid fa-circle-info me-1"></i>
+                    <strong>تنبيه إداري:</strong> بعد إنشاء حسابك، سيُطلب منك تحديد دورك المطلوب (ممثل مؤسسة تعليمية، محكّم خارجي، موظف مجلس)، وستخضع البيانات للمراجعة والاعتماد من مدير النظام قبل تفعيل الصلاحيات.
+                </div>
+
+                <form method="POST" action="{% url 'accounts:register' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold"><i class="fa-solid fa-address-card me-1 text-primary"></i> الاسم الرباعي واللقب العلمي:</label>
+                        <input type="text" name="full_name" class="form-control" placeholder="أدخل اسمك كاملاً كما في الوثائق الرسمية" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-user me-1 text-primary"></i> اسم المستخدم (بالحروف الإنجليزية):</label>
+                            <input type="text" name="username" class="form-control" placeholder="e.g. ahmed_ali" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-envelope me-1 text-primary"></i> البريد الإلكتروني الرسمي:</label>
+                            <input type="email" name="email" class="form-control" placeholder="name@domain.edu.ye" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-lock me-1 text-primary"></i> كلمة المرور:</label>
+                            <input type="password" name="password" class="form-control" placeholder="8 خانات على الأقل" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-lock me-1 text-primary"></i> تأكيد كلمة المرور:</label>
+                            <input type="password" name="password_confirm" class="form-control" placeholder="أعد إدخال كلمة المرور" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-phone me-1 text-primary"></i> رقم الهاتف / الواتساب:</label>
+                            <input type="text" name="phone" class="form-control" placeholder="770000000">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-id-card me-1 text-primary"></i> الرقم الوطني / البطاقة الشخصية:</label>
+                            <input type="text" name="national_id" class="form-control" placeholder="الرقم الوطني">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold" style="background-color: #0b6848;">
+                            <i class="fa-solid fa-arrow-left me-2"></i> متابعة لتحديد الدور المطلوب
+                        </button>
+                        <a href="{% url 'accounts:login' %} class="btn btn-link text-center text-decoration-none mt-2">
+                            لديك حساب بالفعل؟ تسجيل الدخول
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

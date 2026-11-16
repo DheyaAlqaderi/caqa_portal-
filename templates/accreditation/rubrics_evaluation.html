@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}استمارة تقييم ومطابقة المعايير | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-success mb-1">سلم التقدير الوطني (Rubrics)</span>
+        <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list-check text-success me-2"></i> استمارة التقييم المعياري ومطابقة الشواهد لفريق المحكمين</h4>
+        <small class="text-muted">الطلب رقم: {{ app.application_number }} - {{ app.institution.name }} ({{ app.get_track_display }})</small>
+    </div>
+    <div>
+        <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة للملف
+        </a>
+    </div>
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <div class="alert alert-light border shadow-sm mb-4">
+        <div class="fw-bold text-dark mb-1"><i class="fa-solid fa-info-circle text-primary me-1"></i> سلم التقدير المعتمد من مجلس الاعتماد الأكاديمي:</div>
+        <div class="row g-2 text-center small">
+            <div class="col-md-3"><span class="badge bg-danger p-2 d-block">غير مستوفى (0): غياب تام للأدلة أو قصور حرج</span></div>
+            <div class="col-md-3"><span class="badge bg-warning text-dark p-2 d-block">مستوفى جزئياً (1): وجود بداية تطبيق مع ثغرات جوهرية</span></div>
+            <div class="col-md-3"><span class="badge bg-primary p-2 d-block">مستوفى بدرجة كافية (2): استيفاء متطلبات المعيار كافٍ</span></div>
+            <div class="col-md-3"><span class="badge bg-success p-2 d-block">مستوفى بالكامل ومتميز (3): تطبيق نوعي وممارسات رائدة</span></div>
+        </div>
+    </div>
+
+    {% for ind in indicators %}
+    <div class="card card-custom p-4 mb-4 border-start border-4 {% if ind.is_core_standard %}border-danger{% else %}border-success{% endif %}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <span class="badge bg-dark font-monospace me-2">{{ ind.category.code }} - {{ ind.code }}</span>
+                <span class="fw-bold fs-6 text-dark">{{ ind.title }}</span>
+                {% if ind.is_core_standard %}
+                <span class="badge bg-danger ms-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> معيار جوهري حاسم</span>
+                {% endif %}
+            </div>
+            <div>
+                <small class="text-muted">{{ ind.category.title }}</small>
+            </div>
+        </div>
+
+        {% if ind.explanation %}
+        <p class="text-muted small mb-2 bg-light p-2 rounded">
+            <strong>المتطلب والشواهد المقترحة:</strong> {{ ind.explanation }} | <em>{{ ind.suggested_evidences }}</em>
+        </p>
+        {% endif %}
+
+        <div class="row g-3 align-items-center mt-2">
+            <div class="col-md-4">
+                <label class="form-label fw-bold small">درجة الاستيفاء:</label>
+                <select name="score_{{ ind.id }}" class="form-select">
+                    <option value="">-- اختر درجة التقييم --</option>
+                    {% for val, label in score_levels %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold small text-success">نقاط القوة المرصودة:</label>
+                <input type="text" name="strengths_{{ ind.id }}" class="form-control" placeholder="أبرز الإيجابيات...">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold small text-danger">فرص التحسين وملاحظات الضعف:</label>
+                <input type="text" name="weaknesses_{{ ind.id }}" class="form-control" placeholder="مواطن القصور...">
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="card card-custom p-3 sticky-bottom shadow-lg border-top border-4 border-success mt-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-muted"><i class="fa-solid fa-floppy-disk me-1"></i> يتم حفظ ومطابقة درجات المحكم لجميع المؤشرات المعروضة</span>
+            <button type="submit" class="btn btn-success btn-lg fw-bold px-5">
+                <i class="fa-solid fa-check-double me-1"></i> حفظ نتائج تقييم المحكمين
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,603 @@
+{% extends 'base.html' %}
+
+{% block title %}متابعة خطة التحسين والتقارير السنوية | {{ decision.decree_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <span class="badge bg-success mb-1">المرحلة 7: المتابعة والتحسين المستمر</span>
+        <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list-check text-success me-2"></i> متابعة خطة التحسين المستمر والتقارير السنوية</h4>
+        <small class="text-muted">{{ decision.application.institution.name }} {% if decision.application.program %}- {{ decision.application.program.name }}{% endif %} ({{ decision.decree_number }})</small>
+    </div>
+    <div>
+        <a href="{% url 'surveillance:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة للوحة المتابعة
+        </a>
+    </div>
+</div>
+
+<!-- Plan Status & Role Action Bars -->
+<div class="card card-custom p-3 mb-4 border-start border-4 {% if plan.status == 'APPROVED_BY_COUNCIL' %}border-success{% elif plan.status == 'NEEDS_REVISION' %}border-danger{% elif plan.status == 'SUBMITTED' or plan.status == 'RESUBMITTED' %}border-primary{% else %}border-warning{% endif %}">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <span class="text-muted small d-block">الحالة الإجرائية لخطة التحسين:</span>
+            <span class="badge fs-6 
+                {% if plan.status == 'APPROVED_BY_COUNCIL' %}bg-success
+                {% elif plan.status == 'NEEDS_REVISION' %}bg-danger
+                {% elif plan.status == 'SUBMITTED' or plan.status == 'RESUBMITTED' %}bg-primary
+                {% elif plan.status == 'TECHNICALLY_REVIEWED' %}bg-info text-dark
+                {% elif plan.status == 'REFERRED_TO_COUNCIL' %}bg-secondary
+                {% else %}bg-warning text-dark{% endif %}">
+                {{ plan.get_status_display }}
+            </span>
+            {% if plan.is_approved_by_council %}
+            <span class="badge bg-success ms-1"><i class="fa-solid fa-stamp me-1"></i> معتمدة رسمياً بقرار المجلس</span>
+            {% endif %}
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            {% if can_edit_plan %}
+            <form method="POST" action="{% url 'surveillance:plan_submit' plan.pk %}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من تقديم الخطة للأمانة العامة؟ سيتم قفل إمكانية التعديل لحين مراجعتها.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success fw-bold">
+                    <i class="fa-solid fa-paper-plane me-1"></i> تقديم الخطة للأمانة العامة
+                </button>
+            </form>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addActionModal">
+                <i class="fa-solid fa-plus me-1"></i> إضافة بند إجرائي
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadEvidenceModal">
+                <i class="fa-solid fa-upload me-1"></i> رفع وثيقة شاهد
+            </button>
+            {% elif request.user.role == 'INSTITUTION_OFFICER' %}
+            <span class="text-muted small align-self-center"><i class="fa-solid fa-lock me-1"></i> الخطة قيد المراجعة لدى المجلس ولا يمكن تعديلها حالياً.</span>
+            {% endif %}
+
+            {% if is_secretariat %}
+            <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#secretariatReviewModal">
+                <i class="fa-solid fa-clipboard-check me-1"></i> المراجعة الفنية للأمانة
+            </button>
+            <button type="button" class="btn btn-outline-warning text-dark" data-bs-toggle="modal" data-bs-target="#assignVisitModal">
+                <i class="fa-solid fa-user-tag me-1"></i> تكليف زيارة استطلاعية
+            </button>
+            {% endif %}
+
+            {% if is_board %}
+            <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#councilDecisionModal">
+                <i class="fa-solid fa-gavel me-1"></i> قرار مجلس الإدارة
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if plan.secretariat_review_notes %}
+    <div class="alert alert-info mt-3 mb-0 small">
+        <i class="fa-solid fa-info-circle me-1"></i> <strong>ملاحظات المراجعة الفنية للأمانة:</strong> {{ plan.secretariat_review_notes }}
+    </div>
+    {% endif %}
+
+    {% if plan.approval_notes %}
+    <div class="alert alert-success mt-2 mb-0 small">
+        <i class="fa-solid fa-check-double me-1"></i> <strong>توجيهات وقرار مجلس الإدارة:</strong> {{ plan.approval_notes }}
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Improvement Plan Details Column -->
+    <div class="col-lg-6">
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-line text-primary me-2"></i> بيانات خطة التحسين المستمر</h5>
+            
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_plan">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">عنوان خطة التحسين:</label>
+                    <input type="text" name="plan_title" class="form-control" value="{{ plan.plan_title }}" {% if not can_edit_plan %}readonly{% endif %} required>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">المدة الزمنية للتنفيذ:</label>
+                        <input type="text" name="implementation_timeframe" class="form-control" value="{{ plan.implementation_timeframe }}" {% if not can_edit_plan %}readonly{% endif %}>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">الميزانية التقديرية المخصصة:</label>
+                        <input type="text" name="budget_allocated" class="form-control" value="{{ plan.budget_allocated }}" {% if not can_edit_plan %}readonly{% endif %} placeholder="الموازنة التقديرية">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">مصفوفة معالجة الملاحظات ونقاط التحسين والتوصيات:</label>
+                    <textarea name="corrective_actions_matrix" class="form-control" rows="4" {% if not can_edit_plan %}readonly{% endif %} required>{{ plan.corrective_actions_matrix }}</textarea>
+                </div>
+
+                {% if can_edit_plan %}
+                <button type="submit" class="btn btn-primary w-100 fw-bold">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> حفظ وتحديث مسودة الخطة
+                </button>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Corrective Action Items Table -->
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-tasks text-success me-2"></i> بنود الإجراءات والمؤشرات التنفيذية ({{ action_items.count }})</h5>
+            </div>
+
+            {% if action_items %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الملاحظة / القصور</th>
+                            <th>الإجراء التصحيحي</th>
+                            <th>المسؤول / القسم</th>
+                            <th>الاستحقاق</th>
+                            <th>الحالة</th>
+                            <th>الشاهد</th>
+                            {% if can_edit_plan %}<th class="text-center">إجراء</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in action_items %}
+                        <tr>
+                            <td class="fw-bold">{{ item.deficiency_title }}</td>
+                            <td>{{ item.corrective_activity|truncatechars:45 }}</td>
+                            <td>{{ item.responsible_person }} {% if item.department %}<small class="text-muted d-block">{{ item.department }}</small>{% endif %}</td>
+                            <td><span class="badge bg-light text-dark border">{{ item.due_date|date:"Y-m-d" }}</span></td>
+                            <td>
+                                <span class="badge {% if item.status == 'VERIFIED_AND_ACCEPTED' %}bg-success{% elif item.status == 'OVERDUE' %}bg-danger{% else %}bg-info text-dark{% endif %}">
+                                    {{ item.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if item.evidence_document %}
+                                <a href="{{ item.evidence_document.url }}" target="_blank" class="btn btn-sm btn-outline-secondary py-0">
+                                    <i class="fa-solid fa-paperclip"></i>
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            {% if can_edit_plan %}
+                            <td class="text-center">
+                                <form method="POST" action="{% url 'surveillance:action_item_delete' item.pk %}" class="d-inline" onsubmit="return confirm('حذف هذا البند؟');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0"><i class="fa-solid fa-trash"></i></button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">لم يتم إضافة بنود إجراءات تصحيحية بعد. يمكنك إضافة بنود ومؤشرات قياس محددة لتنفيذ خطة التحسين.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Annual Reports & Evidence Column -->
+    <div class="col-lg-6">
+        <!-- Annual Reports Submissions -->
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-file-lines text-success me-2"></i> تقارير المتابعة السنوية للمؤسسة</h5>
+                {% if request.user.role == 'INSTITUTION_OFFICER' or request.user.is_superuser %}
+                <button type="button" class="btn btn-sm btn-success fw-bold" data-bs-toggle="collapse" data-bs-target="#newReportForm">
+                    <i class="fa-solid fa-plus me-1"></i> رفع تقرير سنوي
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- New Report Collapsible Form -->
+            <div class="collapse mb-3" id="newReportForm">
+                <div class="card card-body bg-light border p-3">
+                    <h6 class="fw-bold mb-2">رفع تقرير متابعة دوري سنوي جديد</h6>
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="submit_annual_report">
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">سنة المتابعة:</label>
+                                <select name="year_number" class="form-select form-select-sm">
+                                    <option value="1">التقرير السنوي الأول (1)</option>
+                                    <option value="2">التقرير السنوي الثاني (2)</option>
+                                    <option value="3">التقرير السنوي الثالث (3)</option>
+                                    <option value="4">التقرير السنوي الرابع (4)</option>
+                                    <option value="5">تقرير تجديد الاعتماد (5)</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">فترة التقرير:</label>
+                                <input type="text" name="reporting_period" class="form-control form-control-sm" value="2026 / 2027" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">ملخص التقدم المحرز في تنفيذ التوصيات:</label>
+                            <textarea name="progress_summary" class="form-control form-control-sm" rows="2" required></textarea>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">التحسينات الأكاديمية والمادية المحققة:</label>
+                            <textarea name="quality_improvements_achieved" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">ملف التقرير السنوي المرفق (PDF):</label>
+                            <input type="file" name="report_file" class="form-control form-control-sm">
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-success w-100 fw-bold">
+                            <i class="fa-solid fa-paper-plane me-1"></i> تسليم التقرير للأمانة العامة
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% if reports %}
+            <div class="list-group list-group-flush">
+                {% for r in reports %}
+                <div class="list-group-item p-3 border rounded mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="fw-bold mb-0 text-primary">التقرير السنوي (السنة {{ r.year_number }}) - {{ r.reporting_period }}</h6>
+                        <span class="badge 
+                            {% if r.review_status == 'SATISFACTORY' %}bg-success
+                            {% elif r.review_status == 'NEEDS_CORRECTION' or r.review_status == 'ACTION_REQUIRED' %}bg-danger
+                            {% elif r.review_status == 'TECHNICALLY_ACCEPTED' %}bg-info text-dark
+                            {% else %}bg-warning text-dark{% endif %}">
+                            {{ r.get_review_status_display }}
+                        </span>
+                    </div>
+                    <p class="small text-muted mb-2">{{ r.progress_summary|truncatechars:120 }}</p>
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            {% if r.report_file %}
+                            <a href="{% url 'surveillance:download_report_file' r.pk %}" class="btn btn-sm btn-outline-primary py-0">
+                                <i class="fa-solid fa-download me-1"></i> تحميل ملف التقرير
+                            </a>
+                            {% endif %}
+                            <small class="text-muted ms-2">تاريخ الرفع: {{ r.submission_date|date:"Y-m-d" }}</small>
+                        </div>
+
+                        <div class="d-flex gap-1">
+                            {% if is_secretariat %}
+                            <button class="btn btn-sm btn-outline-dark py-0" data-bs-toggle="collapse" data-bs-target="#secReviewReport{{ r.pk }}">
+                                <i class="fa-solid fa-pen-to-square me-1"></i> فحص الأمانة
+                            </button>
+                            {% endif %}
+                            {% if is_board %}
+                            <button class="btn btn-sm btn-dark py-0" data-bs-toggle="collapse" data-bs-target="#councilDecisionReport{{ r.pk }}">
+                                <i class="fa-solid fa-gavel me-1"></i> قرار المجلس
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Secretariat Review Form for Report -->
+                    {% if is_secretariat %}
+                    <div class="collapse mt-3 p-3 bg-light border rounded" id="secReviewReport{{ r.pk }}">
+                        <h6 class="fw-bold small mb-2 text-dark">المراجعة الفنية للأمانة العامة حيال التقرير السنوي</h6>
+                        <form method="POST" action="{% url 'surveillance:report_secretariat_review' r.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-2">
+                                <label class="small fw-bold">ملاحظات الفحص والتقييم الفني:</label>
+                                <textarea name="secretariat_review_comments" class="form-control form-control-sm" rows="2">{{ r.secretariat_review_comments }}</textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="review_action" value="accept_technical" class="btn btn-sm btn-info text-dark fw-bold">قبول فني</button>
+                                <button type="submit" name="review_action" value="refer_to_council" class="btn btn-sm btn-primary fw-bold">إحالة لمجلس الإدارة</button>
+                                <button type="submit" name="review_action" value="request_corrections" class="btn btn-sm btn-outline-danger">إعادة للمؤسسة للتعديل</button>
+                                <button type="submit" name="review_action" value="trigger_site_audit" class="btn btn-sm btn-outline-warning text-dark">طلب زيارة استطلاعية</button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    <!-- Council Decision Form for Report -->
+                    {% if is_board %}
+                    <div class="collapse mt-3 p-3 bg-light border rounded" id="councilDecisionReport{{ r.pk }}">
+                        <h6 class="fw-bold small mb-2 text-dark">قرار مجلس الإدارة حيال التقرير السنوي</h6>
+                        <form method="POST" action="{% url 'surveillance:report_council_decision' r.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-2">
+                                <label class="small fw-bold">توجيهات وقرار المجلس ومسوغاته:</label>
+                                <textarea name="council_feedback_comments" class="form-control form-control-sm" rows="2">{{ r.council_feedback_comments }}</textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="council_action" value="satisfactory" class="btn btn-sm btn-success fw-bold">استيفاء واستمرار سريان الاعتماد</button>
+                                <button type="submit" name="council_action" value="action_required" class="btn btn-sm btn-warning text-dark fw-bold">توجيه إنذار / إجراء تصحيحي</button>
+                                <button type="submit" name="council_action" value="trigger_audit" class="btn btn-sm btn-outline-danger">تكليف زيارة ميدانية استطلاعية</button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">لا توجد تقارير سنوية مسجلة حتى الآن.</p>
+            {% endif %}
+        </div>
+
+        <!-- Surveillance Visits & External Follow-up List -->
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-building-circle-check text-warning text-dark me-2"></i> الزيارات الاستطلاعية والمتابعة الميدانية ({{ visits.count }})</h5>
+
+            {% if visits %}
+            <div class="list-group list-group-flush">
+                {% for v in visits %}
+                <div class="list-group-item p-3 border rounded mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">{{ v.get_visit_type_display }} ({{ v.visit_date|date:"Y-m-d" }})</span>
+                        <span class="badge {% if v.status == 'REPORT_SUBMITTED' or v.status == 'COMPLETED' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                            {{ v.get_status_display }}
+                        </span>
+                    </div>
+                    {% if v.scope_and_deliverables %}
+                    <p class="small text-muted mb-2"><strong>نطاق التكليف:</strong> {{ v.scope_and_deliverables }}</p>
+                    {% endif %}
+                    {% if v.field_audit_report %}
+                    <p class="small text-dark mb-2 bg-light p-2 border rounded"><strong>تقرير المحكمين:</strong> {{ v.field_audit_report }}</p>
+                    {% endif %}
+                    <div class="small">
+                        <span class="text-muted">المحكمون:</span>
+                        {% for a in v.auditors.all %}
+                        <span class="badge bg-light text-dark border">{{ a.get_full_name|default:a.username }}</span>
+                        {% empty %}
+                        <span class="text-muted">لم يتم تعيين محكمين بعد</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">لا توجد زيارات استطلاعية مجدولة حالياً.</p>
+            {% endif %}
+        </div>
+
+        <!-- Supporting Evidence Files -->
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-folder-open text-primary me-2"></i> وثائق وشواهد خطة التحسين المرفوعة ({{ evidences.count }})</h5>
+            {% if evidences %}
+            <ul class="list-group list-group-flush small">
+                {% for ev in evidences %}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                    <div>
+                        <span class="fw-bold">{{ ev.title }}</span>
+                        {% if ev.description %}<small class="text-muted d-block">{{ ev.description }}</small>{% endif %}
+                    </div>
+                    <a href="{% url 'surveillance:download_evidence' ev.pk %}" class="btn btn-sm btn-outline-primary py-0">
+                        <i class="fa-solid fa-download me-1"></i> تحميل
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted small mb-0">لم يتم رفع وثائق شواهد إضافية بعد.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODALS -->
+<!-- ========================================================================= -->
+
+<!-- Modal: Add Action Item -->
+<div class="modal fade" id="addActionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'surveillance:action_item_create' plan.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">إضافة بند إجراء تصحيحي / تطويري</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">الملاحظة أو القصور المطلوب معالجته:</label>
+                        <input type="text" name="deficiency_title" class="form-control" required placeholder="مثال: تحديث معامل المحاكاة السريرية">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">الإجراء والنشاط التصحيحي التفصيلي:</label>
+                        <textarea name="corrective_activity" class="form-control" rows="3" required placeholder="شرح الخطوات التنفيذية..."></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">الشخص المسؤول:</label>
+                            <input type="text" name="responsible_person" class="form-control" required placeholder="عميد الكلية / مدير الجودة">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">القسم / الجهة المنفذة:</label>
+                            <input type="text" name="department" class="form-control" placeholder="قسم الهندسة الطبية">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">تاريخ الاستحقاق:</label>
+                            <input type="date" name="due_date" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">مؤشر قياس التحقق (KPI):</label>
+                            <input type="text" name="kpi_measure" class="form-control" placeholder="نسبة الإنجاز 100%">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">الشاهد أو الوثيقة الثبوتية (اختياري):</label>
+                        <input type="file" name="evidence_document" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success fw-bold">حفظ البند الإجرائي</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Upload Evidence Document -->
+<div class="modal fade" id="uploadEvidenceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'surveillance:evidence_upload' plan.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">رفع وثيقة أو شاهد إثبات للخطة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">عنوان الشاهد:</label>
+                        <input type="text" name="title" class="form-control" required placeholder="مثال: محضر تدشين مركز الأبحاث">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">ربط بإجراء تصحيحي محدد (اختياري):</label>
+                        <select name="action_item_id" class="form-select">
+                            <option value="">-- عام بالخطة --</option>
+                            {% for item in action_items %}
+                            <option value="{{ item.pk }}">{{ item.deficiency_title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">شرح محتوى الشاهد:</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">الملف المرفق:</label>
+                        <input type="file" name="evidence_file" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary fw-bold">رفع الشاهد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Secretariat Review for Plan -->
+<div class="modal fade" id="secretariatReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'surveillance:plan_secretariat_review' plan.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">المراجعة الفنية للأمانة العامة لخطة التحسين</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">ملاحظات ومخرجات الفحص الفني للأمانة:</label>
+                        <textarea name="secretariat_review_notes" class="form-control" rows="4" placeholder="الملاحظات والتوصيات الفنية الموجهة للمؤسسة أو للمجلس...">{{ plan.secretariat_review_notes }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">الإجراء الفني المتخذ:</label>
+                        <select name="review_action" class="form-select" required>
+                            <option value="mark_technically_reviewed">اعتماد الاستيفاء الفني (مستوفٍ ومقبول فنياً)</option>
+                            <option value="refer_to_council">إحالة الخطة لمجلس الإدارة للاعتماد الرسمي</option>
+                            <option value="request_revision">إعادة الخطة للمؤسسة لاستكمال نواقص وملاحظات</option>
+                            <option value="require_followup">تسجيل متطلب تنفيذ زيارة استطلاعية تحققية</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary fw-bold">تنفيذ الإجراء الفني</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Council Board Decision for Plan -->
+<div class="modal fade" id="councilDecisionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'surveillance:plan_council_decision' plan.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">قرار مجلس الإدارة حيال خطة التحسين المستمر</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">توجيهات وملاحظات مجلس الإدارة:</label>
+                        <textarea name="approval_notes" class="form-control" rows="3" placeholder="حيثيات قرار المجلس...">{{ plan.approval_notes }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">قرار المجلس:</label>
+                        <select name="council_decision_action" class="form-select" required>
+                            <option value="approve">اعتماد خطة التحسين المستمر رسمياً</option>
+                            <option value="require_revision">توجيه المؤسسة بتعديل الخطة واستيفاء شروط إضافية</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-dark fw-bold">تسجيل قرار المجلس الرسمي</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Surveillance Visit -->
+<div class="modal fade" id="assignVisitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'surveillance:visit_assign' decision.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">تكليف زيارة متابعة استطلاعية ميدانية</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">نوع الزيارة:</label>
+                            <select name="visit_type" class="form-select">
+                                {% for val, label in visit_types %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">تاريخ الزيارة المقترح:</label>
+                            <input type="date" name="visit_date" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">نطاق التكليف والمخرجات المطلوبة من المحكمين:</label>
+                        <textarea name="scope_and_deliverables" class="form-control" rows="3" required placeholder="معاينة إزالة نقاط الضعف، فحص الشواهد، إجراء المقابلات..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">اختيار المحكمين الخارجيين المعتمدين:</label>
+                        <select name="auditor_ids" class="form-select" multiple size="4" required>
+                            {% for rev in available_reviewers %}
+                            <option value="{{ rev.pk }}">{{ rev.get_full_name|default:rev.username }} ({{ rev.specialization|default:"خبير تقييم" }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">اضغط Ctrl لتحديد أكثر من محكم.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">إصدار التكليف الرسمي</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}بوابة الاعتماد الأكاديمي وضمان الجودة - اليمن{% endblock %}</title>
+    <!-- Bootstrap 5 RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-emerald: #0b6848;
+            --secondary-emerald: #148a60;
+            --dark-navy: #0f1e2f;
+            --gold-accent: #c49a45;
+            --light-bg: #f5f8f7;
+            --card-border: #e0e9e4;
+        }
+
+        html, body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--light-bg);
+            color: #2c3e50;
+            min-height: 100vh;
+            max-width: 100%;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Adaptive Container Sizing to Fit Content Naturally */
+        .caqa-shell-container {
+            width: 100%;
+            max-width: 1460px;
+            margin-right: auto;
+            margin-left: auto;
+            padding-right: clamp(0.75rem, 2vw, 1.75rem);
+            padding-left: clamp(0.75rem, 2vw, 1.75rem);
+        }
+
+        /* Remove double padding when child templates wrap content in .container or .container-fluid */
+        main.caqa-shell-container > .container,
+        main.caqa-shell-container > .container-fluid {
+            max-width: 100% !important;
+            padding-right: 0 !important;
+            padding-left: 0 !important;
+        }
+
+        /* Auto-fit single-column centered workflow forms/views so they fit their content without wasted margins */
+        @media (min-width: 992px) {
+            main.caqa-shell-container > .row.justify-content-center > .col-lg-8:only-child,
+            main.caqa-shell-container > .row.justify-content-center > .col-lg-9:only-child,
+            main.caqa-shell-container > .row.justify-content-center > .col-lg-10:only-child,
+            main.caqa-shell-container > .row.justify-content-center > .col-md-8:only-child {
+                width: 100%;
+                max-width: 1160px;
+                flex: 0 0 auto;
+            }
+            main.caqa-shell-container > .row.justify-content-center > .col-lg-6:only-child,
+            main.caqa-shell-container > .row.justify-content-center > .col-md-7.col-lg-6:only-child {
+                width: 100%;
+                max-width: 780px;
+                flex: 0 0 auto;
+            }
+        }
+
+        .navbar-caqa {
+            background: linear-gradient(135deg, #0f1e2f 0%, #0b6848 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            padding: 0.45rem 0.75rem;
+        }
+
+        .navbar-brand-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: #ffffff !important;
+            line-height: 1.25;
+            white-space: nowrap;
+        }
+
+        .navbar-brand-sub {
+            font-size: 0.68rem;
+            color: var(--gold-accent);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .navbar-caqa .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.6rem !important;
+            border-radius: 6px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .navbar-caqa .nav-link:hover, .navbar-caqa .nav-link.active {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .user-profile-pill {
+            max-width: 225px;
+        }
+
+        .user-profile-pill .user-name-text,
+        .user-profile-pill .user-role-text {
+            display: block;
+            max-width: 165px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge-track-inst {
+            background-color: #0b6848;
+            color: #fff;
+        }
+
+        .badge-track-prog {
+            background-color: #24527a;
+            color: #fff;
+        }
+
+        .card, .card-custom {
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(11, 104, 72, 0.04);
+            background: #ffffff;
+            max-width: 100%;
+            min-width: 0;
+            height: auto;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card-custom:hover {
+            box-shadow: 0 8px 24px rgba(11, 104, 72, 0.08);
+        }
+
+        /* Responsive Tables & Content Fitting */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .table {
+            margin-bottom: 0;
+            width: 100%;
+        }
+
+        .table th, .table td {
+            vertical-align: middle;
+            padding: 0.55rem 0.7rem;
+            overflow-wrap: break-word;
+        }
+
+        .font-monospace, code {
+            word-break: break-all;
+        }
+
+        /* Auto-fit textareas and form controls to their content */
+        textarea.form-control {
+            min-height: 84px;
+            resize: vertical;
+        }
+
+        /* Modals sized to fit content comfortably */
+        .modal-dialog {
+            max-width: min(94vw, 680px);
+        }
+        .modal-dialog.modal-lg {
+            max-width: min(95vw, 960px);
+        }
+        .modal-dialog.modal-xl {
+            max-width: min(96vw, 1220px);
+        }
+        .modal-body {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .stage-stepper {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            position: relative;
+            margin: 1.5rem 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .stage-stepper::before {
+            content: '';
+            position: absolute;
+            top: 22px;
+            left: 30px;
+            right: 30px;
+            height: 4px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+
+        @media (max-width: 991.98px) {
+            .stage-stepper::before {
+                display: none;
+            }
+            .navbar-brand-title {
+                font-size: 0.88rem;
+                white-space: normal;
+            }
+            .navbar-brand-sub {
+                display: none;
+            }
+        }
+
+        .step-item {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            background: var(--light-bg);
+            padding: 0 6px;
+            flex: 1 1 95px;
+        }
+
+        .step-circle {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            margin: 0 auto 6px;
+            transition: all 0.3s;
+            border: 3px solid #fff;
+        }
+
+        .step-item.completed .step-circle {
+            background: var(--secondary-emerald);
+            color: #fff;
+            box-shadow: 0 0 0 3px rgba(20, 138, 96, 0.2);
+        }
+
+        .step-item.active .step-circle {
+            background: var(--gold-accent);
+            color: #fff;
+            box-shadow: 0 0 0 5px rgba(196, 154, 69, 0.3);
+            transform: scale(1.08);
+        }
+
+        .step-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: #475569;
+            max-width: 115px;
+            margin: 0 auto;
+            line-height: 1.25;
+            display: block;
+        }
+
+        .footer {
+            margin-top: auto;
+            background-color: #0c1824;
+            color: #94a3b8;
+            padding: 1.15rem 0;
+            border-top: 3px solid var(--gold-accent);
+            font-size: 0.85rem;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-caqa sticky-top">
+        <div class="caqa-shell-container d-flex flex-wrap align-items-center justify-content-between">
+            <a class="navbar-brand d-flex align-items-center me-2" href="{% url 'core_dashboard' %}">
+                <div class="me-2 d-flex align-items-center">
+                    {% include 'includes/yemen_emblem_svg.html' with width='42' height='36' %}
+                </div>
+                <div>
+                    <div class="navbar-brand-title">مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي</div>
+                    <div class="navbar-brand-sub">الجمهورية اليمنية • البوابة الإلكترونية الموحدة للاعتماد الأكاديمي</div>
+                </div>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#caqaNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="caqaNavbar">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center">
+                    <!-- 1. لوحة التحكم -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'core_dashboard' %}active{% endif %}" href="{% url 'core_dashboard' %}">
+                            <i class="fa-solid fa-chart-pie me-1"></i> لوحة التحكم
+                        </a>
+                    </li>
+
+                    <!-- 2. مكتبتي -->
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'library' in request.path %}active{% endif %} text-warning fw-bold" href="{% url 'accounts:library_index' %}">
+                            <i class="fa-solid fa-folder-open me-1 text-warning"></i> مكتبتي
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- 3. مسارات الاعتماد الأكاديمي -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'institutional' in request.path or 'programmatic' in request.path or 'surveillance' in request.path or 'institutions' in request.path or 'registry' in request.path %}active{% endif %}" href="#" id="accreditationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-graduation-cap me-1"></i> مسارات الاعتماد
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow" aria-labelledby="accreditationDropdown">
+                            <li><a class="dropdown-item py-2" href="{% url 'accreditation:institutional_list' %}"><i class="fa-solid fa-university me-2 text-primary"></i> الاعتماد المؤسسي</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accreditation:programmatic_list' %}"><i class="fa-solid fa-user-graduate me-2 text-success"></i> الاعتماد البرامجي</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'public_registry' %}"><i class="fa-solid fa-shield-halved me-2 text-warning"></i> السجل الوطني للاعتماد</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'institutions:list' %}"><i class="fa-solid fa-school me-2 text-info"></i> دليل الجامعات والمؤسسات</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'surveillance:dashboard' %}"><i class="fa-solid fa-clock-rotate-left me-2 text-secondary"></i> المتابعة والرقابة الدورية</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- 4. التقييم واللجان والطعون -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'board-reviews' in request.path or 'grievances' in request.path or 'comparison' in request.path or 'external' in request.path %}active{% endif %}" href="#" id="reviewsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-clipboard-check me-1"></i> التقييم والطعون
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow" aria-labelledby="reviewsDropdown">
+                            {% if user.is_council or user.is_board or user.is_staff %}
+                            <li><a class="dropdown-item py-2" href="{% url 'accreditation:board_applications_list' %}"><i class="fa-solid fa-list-check me-2 text-primary"></i> مراجعة الطلبات وتقارير المقارنة</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item py-2 fw-bold text-info" href="{% url 'accreditation:grievances_list' %}"><i class="fa-solid fa-scale-unbalanced me-2 text-danger"></i> لجنة التظلمات والطعون المستقلة</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'surveillance:dashboard' %}"><i class="fa-solid fa-magnifying-glass-chart me-2 text-primary"></i> الرقابة الميدانية والتفتيش الدوري</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- 5. الحوكمة والقرارات السيادية -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'decisions' in request.path or 'minister' in request.path %}active{% endif %}" href="#" id="governanceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-scale-balanced me-1"></i> الحوكمة والقرارات
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow" aria-labelledby="governanceDropdown">
+                            {% if user.role == 'PRIME_MINISTER' or user.is_prime_minister or user.is_superuser %}
+                            <li><a class="dropdown-item py-2 fw-bold text-success" href="{% url 'decisions:minister_nominations_list' %}"><i class="fa-solid fa-landmark me-2 text-success"></i> ديوان دولة رئيس الوزراء (اعتماد الترشيحات)</a></li>
+                            {% endif %}
+                            {% if user.role == 'MINISTER' or user.is_minister or user.is_superuser %}
+                            <li><a class="dropdown-item py-2 fw-bold text-warning" href="{% url 'decisions:minister_dashboard' %}"><i class="fa-solid fa-landmark-dome me-2 text-warning"></i> ديوان معالي الوزير</a></li>
+                            {% endif %}
+                            {% if user.role in 'PRIME_MINISTER,MINISTER,COUNCIL_CHAIRMAN,COUNCIL_VICE_CHAIRMAN,COUNCIL_SECRETARY_GENERAL,BOARD_MEMBER,ADMIN' or user.is_superuser %}
+                            <li><a class="dropdown-item py-2" href="{% url 'decisions:minister_nominations_list' %}"><i class="fa-solid fa-users-viewfinder me-2 text-primary"></i> مذكرات الترشيح لمجلس الوزراء</a></li>
+                            <li><a class="dropdown-item py-2 fw-bold text-success" href="{% url 'decisions:minister_policies_list' %}"><i class="fa-solid fa-scroll me-2 text-success"></i> اللوائح والسياسات العامة للمجلس</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item py-2" href="{% url 'decisions:meetings_list' %}"><i class="fa-solid fa-scale-balanced me-2 text-dark"></i> جلسات وقرارات المجلس والشهادات</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- 6. الشؤون المالية والخدمات -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'operations' in request.path or 'standards' in request.path %}active{% endif %}" href="#" id="operationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-layer-group me-1"></i> المالية والخدمات
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow" aria-labelledby="operationsDropdown">
+                            <li><a class="dropdown-item py-2 fw-bold text-success" href="{% url 'operations:invoices_list' %}"><i class="fa-solid fa-file-invoice-dollar me-2 text-success"></i> المطالبات وإخلاء الطرف المالي</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'standards:guide' %}"><i class="fa-solid fa-book-bookmark me-2 text-primary"></i> المعايير الوطنية للاعتماد</a></li>
+                            {% if user.is_council or user.is_board or user.is_staff %}
+                            <li><a class="dropdown-item py-2" href="{% url 'standards:manage_dashboard' %}"><i class="fa-solid fa-sliders me-2 text-secondary"></i> إدارة وتعديل المعايير</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'operations:training_list' %}"><i class="fa-solid fa-chalkboard-user me-2 text-info"></i> برامج التدريب والتأهيل</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'operations:support_tickets' %}"><i class="fa-solid fa-headset me-2 text-warning"></i> بلاغات الجودة والتحقق والدعم الفني</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- 7. إدارة النظام (لمدير النظام ومدير نظم المعلومات) -->
+                    {% if user.role == 'ADMIN' or user.role == 'IT_DIRECTOR' or user.is_superuser %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'sysadmin' in request.path or 'admin' in request.path or 'permissions' in request.path %}active{% endif %}" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-gear me-1"></i> إدارة النظام
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item py-2 fw-bold text-primary" href="{% url 'accounts:sysadmin_dashboard' %}"><i class="fa-solid fa-gauge-high me-2 text-primary"></i> 1. لوحة مدير النظام الشاملة</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:admin_users_dashboard' %}"><i class="fa-solid fa-users-gear me-2 text-dark"></i> 2. إدارة المستخدمين والحسابات</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:permission_matrix' %}"><i class="fa-solid fa-shield-halved me-2 text-info"></i> 3. الأدوار ومصفوفة الصلاحيات</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:sysadmin_reference_data' %}"><i class="fa-solid fa-building-columns me-2 text-success"></i> 4. المؤسسات والبيانات المرجعية</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:sysadmin_settings' %}"><i class="fa-solid fa-sliders me-2 text-secondary"></i> 5. الإعدادات العامة للنظام</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:sysadmin_notifications_monitor' %}"><i class="fa-solid fa-bell me-2 text-warning"></i> 6. مراقبة الإشعارات والبريد</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:sysadmin_files_storage' %}"><i class="fa-solid fa-hard-drive me-2 text-primary"></i> 7. إدارة الملفات ومساحة التخزين</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:sysadmin_workflow_monitor' %}"><i class="fa-solid fa-diagram-project me-2 text-info"></i> 8. مراقبة مسارات العمل (للقراءة فقط)</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:sysadmin_security_center' %}"><i class="fa-solid fa-user-shield me-2 text-danger"></i> 9. مركز الأمان والحوكمة والتدقيق</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:sysadmin_backups' %}"><i class="fa-solid fa-database me-2 text-success"></i> 10. النسخ الاحتياطي والاستعادة</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'accounts:admin_diagnostics' %}?diagnostic_reason=فحص_تقني"><i class="fa-solid fa-heart-pulse me-2 text-warning"></i> 11. صحة النظام والتشخيص الفني</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav align-items-center">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item me-2">
+                        <a class="nav-link position-relative px-2" href="{% url 'accounts:notifications_list' %}" title="مركز الإشعارات">
+                            <i class="fa-solid fa-bell fs-5 text-warning"></i>
+                            {% if user.unread_notifications_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                                {{ user.unread_notifications_count }}
+                                <span class="visually-hidden">إشعارات غير مقروءة</span>
+                            </span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center bg-dark bg-opacity-25 px-3 py-1 rounded-pill user-profile-pill" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-user-circle fs-5 me-2 text-warning"></i>
+                            <div class="text-start overflow-hidden">
+                                <div class="fw-bold lh-1 user-name-text" style="font-size: 0.84rem;">{{ user.get_full_name|default:user.username }}</div>
+                                <small class="text-white-50 user-role-text" style="font-size:0.7rem;">{{ user_role_label }}</small>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                            <li><h6 class="dropdown-header">الصفة: {{ user_role_label }}</h6></li>
+                            {% if user.institution %}
+                            <li><span class="dropdown-item-text small text-muted"><i class="fa-solid fa-building-columns me-1"></i> {{ user.institution.name }}</span></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="fa-solid fa-id-badge me-2 text-primary"></i> الملف الشخصي</a></li>
+                            <li><a class="dropdown-item" href="{% url 'accounts:library_index' %}"><i class="fa-solid fa-folder-open me-2 text-warning"></i> مكتبتي الخاصة</a></li>
+                            {% if user.is_staff %}
+                            <li><a class="dropdown-item" href="/admin/" target="_blank"><i class="fa-solid fa-gear me-2 text-secondary"></i> لوحة الإدارة الفنية (Django Admin)</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}"><i class="fa-solid fa-right-from-bracket me-2"></i> تسجيل الخروج</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="btn btn-warning fw-bold px-4" href="{% url 'accounts:login' %}">
+                            <i class="fa-solid fa-right-to-bracket me-1"></i> تسجيل الدخول
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Messages / Alerts -->
+    <div class="caqa-shell-container mt-3">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check text-success{% elif message.tags == 'warning' %}fa-triangle-exclamation text-warning{% elif message.tags == 'danger' %}fa-circle-exclamation text-danger{% else %}fa-circle-info text-primary{% endif %} me-2"></i>
+                <strong>{{ message }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="caqa-shell-container my-3 flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer text-center">
+        <div class="caqa-shell-container">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-md-start mb-2 mb-md-0">
+                    <div class="fw-bold text-white mb-1">الجمهورية اليمنية • مجلس الاعتماد الأكاديمي وضمان جودة التعليم العالي (CAQA)</div>
+                    <small>النظام الإلكتروني الشامل لحوكمة وأتمتة مسارات الاعتماد المؤسسي والبرامجي وفق المعايير الوطنية</small>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <span class="badge bg-secondary me-2"><i class="fa-solid fa-code me-1"></i> الإصدار 2.5 (2026)</span>
+                    <a href="{% url 'standards:guide' %}" class="text-light text-decoration-none ms-3"><i class="fa-solid fa-book-open me-1"></i> الأدلة الإرشادية</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            function fitTextarea(el) {
+                if (!el || el.classList.contains('d-none')) return;
+                el.style.height = 'auto';
+                var targetHeight = Math.min(Math.max(el.scrollHeight + 4, 84), 520);
+                el.style.height = targetHeight + 'px';
+            }
+            document.querySelectorAll('textarea.form-control').forEach(function (ta) {
+                if (ta.value && ta.value.trim().length > 0) {
+                    fitTextarea(ta);
+                }
+                ta.addEventListener('input', function () {
+                    fitTextarea(ta);
+                });
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

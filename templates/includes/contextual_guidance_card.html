@@ -1,0 +1,97 @@
+{% if guidance %}
+<div class="card card-custom mb-4 border-0 shadow-sm overflow-hidden" style="border-right: 6px solid {% if guidance.urgency_level == 'ACTION_REQUIRED' %}#0b6848{% elif guidance.urgency_level == 'WAITING' %}#c49a45{% elif guidance.urgency_level == 'COMPLETED' %}#198754{% else %}#0d6efd{% endif %} !important;">
+    <div class="card-body p-4" style="background: linear-gradient(135deg, #ffffff 0%, #f8fbf9 100%);">
+        
+        <!-- Header Bar -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="badge bg-dark bg-opacity-75 text-white px-3 py-2 fs-6">
+                    <i class="fa-solid fa-user-shield text-warning me-1"></i> صفتك الحالية: <strong>{{ guidance.role_title }}</strong>
+                </span>
+                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2">
+                    <i class="fa-solid fa-layer-group me-1"></i> المرحلة {{ guidance.stage_number }} من 7: {{ guidance.current_stage_title }}
+                </span>
+            </div>
+
+            <div>
+                {% if guidance.urgency_level == 'ACTION_REQUIRED' %}
+                <span class="badge bg-success fs-6 px-3 py-2 shadow-sm animate-pulse">
+                    <i class="fa-solid fa-circle-exclamation me-1"></i> مطلوب منك إجراء فوري الآن
+                </span>
+                {% elif guidance.urgency_level == 'WAITING' %}
+                <span class="badge bg-warning text-dark fs-6 px-3 py-2 shadow-sm">
+                    <i class="fa-solid fa-hourglass-half me-1"></i> بانتظار استكمال الإجراء من الإدارة المعنية
+                </span>
+                {% elif guidance.urgency_level == 'COMPLETED' %}
+                <span class="badge bg-primary fs-6 px-3 py-2 shadow-sm">
+                    <i class="fa-solid fa-circle-check me-1"></i> الإجراء مكتمل وموثق رسمياً
+                </span>
+                {% else %}
+                <span class="badge bg-info text-dark fs-6 px-3 py-2 shadow-sm">
+                    <i class="fa-solid fa-circle-info me-1"></i> للمتابعة والاطلاع الإداري
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Headline & Tasks Grid -->
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h5 class="fw-bold text-dark mb-3">
+                    {% if guidance.urgency_level == 'ACTION_REQUIRED' %}
+                    <i class="fa-solid fa-bullseye text-success me-2"></i>
+                    {% else %}
+                    <i class="fa-solid fa-circle-info text-primary me-2"></i>
+                    {% endif %}
+                    {{ guidance.headline }}
+                </h5>
+
+                <!-- Step-by-Step Action Tasks -->
+                <div class="tasks-checklist mb-3">
+                    <div class="small fw-bold text-muted mb-2">
+                        <i class="fa-solid fa-list-ol me-1"></i> الخطوات الإجرائية المطلوبة في هذه المرحلة:
+                    </div>
+                    <ul class="list-unstyled mb-0 pe-2">
+                        {% for task in guidance.tasks %}
+                        <li class="d-flex align-items-start mb-2 small">
+                            {% if task.done %}
+                            <i class="fa-solid fa-circle-check text-success fs-6 me-2 mt-1"></i>
+                            <span class="text-muted text-decoration-line-through">{{ task.text }}</span>
+                            {% else %}
+                            <i class="fa-regular fa-circle-dot text-primary fs-6 me-2 mt-1"></i>
+                            <span class="fw-bold text-dark">{{ task.text }}</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Continuous Improvement & Standards Tip -->
+                {% if guidance.improvement_tip %}
+                <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3 mb-2 small text-dark">
+                    <i class="fa-solid fa-lightbulb text-warning me-2 fs-6"></i>
+                    <strong>موجه خطة التحسين وضمان الجودة المستمر:</strong> {{ guidance.improvement_tip }}
+                </div>
+                {% endif %}
+
+                <div class="text-muted font-monospace" style="font-size: 0.72rem;">
+                    <i class="fa-solid fa-scale-balanced me-1"></i> المرجع القانوني: {{ guidance.legal_reference }}
+                </div>
+            </div>
+
+            <!-- Call to Action Button Column -->
+            <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                {% if guidance.primary_btn %}
+                <div class="p-3 bg-white rounded-3 border shadow-sm text-center">
+                    <div class="small text-muted mb-2 fw-bold">الإجراء الموصى به لخطوتك القادمة:</div>
+                    <a href="{{ guidance.primary_btn.url }}" class="btn {{ guidance.primary_btn.class }} btn-lg w-100 fw-bold shadow-sm py-2">
+                        <i class="{{ guidance.primary_btn.icon }} me-2"></i> {{ guidance.primary_btn.label }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endif %}

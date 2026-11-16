@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}المصادقة والاعتماد النهائي على سياسات ولوائح المجلس | ديوان معالي الوزير{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 my-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            {% if user.role == 'MINISTER' or user.is_minister %}
+            <li class="breadcrumb-item"><a href="{% url 'decisions:minister_dashboard' %}">ديوان معالي الوزير</a></li>
+            {% else %}
+            <li class="breadcrumb-item"><a href="{% url 'decisions:meetings_list' %}">قرارات وجلسات المجلس</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">المصادقة على اللوائح والسياسات العامة</li>
+        </ol>
+    </nav>
+
+    <!-- Top Action Bar -->
+    <div class="card card-custom p-4 mb-4 border-0 shadow-sm">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold text-dark mb-1">
+                    <i class="fa-solid fa-stamp text-danger me-2"></i> سجل المصادقة والاعتماد النهائي على سياسات ولوائح المجلس
+                </h4>
+                <p class="text-muted small mb-0">
+                    ممارسة الصلاحية السيادية والسياسية لمعالي الوزير في الاعتماد النهائي والمصادقة على السياسات واللوائح العامة وأدلة المعايير الصادرة عن مجلس الاعتماد الأكاديمي وإصدار القرارات الوزارية بنفاذها.
+                </p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary btn-lg fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#newPolicyModal">
+                    <i class="fa-solid fa-file-circle-plus me-1"></i> إحالة لائحة/سياسة جديدة للمصادقة
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter pills -->
+        <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top">
+            <a href="{% url 'decisions:minister_policies_list' %}" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %} fw-bold">
+                كافة اللوائح والسياسات
+            </a>
+            <a href="?status=PENDING_RATIFICATION" class="btn btn-sm {% if status_filter == 'PENDING_RATIFICATION' %}btn-danger{% else %}btn-outline-danger{% endif %} fw-bold">
+                <i class="fa-solid fa-clock me-1"></i> بانتظار المصادقة الوزارية
+            </a>
+            <a href="?status=RATIFIED" class="btn btn-sm {% if status_filter == 'RATIFIED' %}btn-success{% else %}btn-outline-success{% endif %} fw-bold">
+                <i class="fa-solid fa-circle-check me-1"></i> مصادق عليها ونافذة
+            </a>
+            <a href="?status=RETURNED_WITH_REMARKS" class="btn btn-sm {% if status_filter == 'RETURNED_WITH_REMARKS' %}btn-warning{% else %}btn-outline-warning text-dark{% endif %} fw-bold">
+                معادة بملاحظات للتعديل
+            </a>
+        </div>
+    </div>
+
+    <!-- Policies Table -->
+    <div class="card card-custom p-4 border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 30%;">عنوان الوثيقة والنوع</th>
+                        <th style="width: 20%;">مرجع إقرار المجلس</th>
+                        <th style="width: 15%;">تاريخ الإحالة</th>
+                        <th style="width: 15%;">موقف المصادقة الوزارية</th>
+                        <th style="width: 10%;">القرار الوزاري والنفاذ</th>
+                        <th style="width: 10%;" class="text-center">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pol in policies %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark fs-6">{{ pol.title }}</div>
+                            <span class="badge bg-light text-primary border mt-1">{{ pol.get_policy_type_display }}</span>
+                            {% if pol.version_number %}<span class="badge bg-dark-subtle text-dark border ms-1">الإصدار {{ pol.version_number }}</span>{% endif %}
+                            {% if pol.document_file %}
+                            <a href="{{ pol.document_file.url }}" target="_blank" class="badge bg-secondary text-white text-decoration-none ms-1">
+                                <i class="fa-solid fa-file-pdf"></i> PDF
+                            </a>
+                            {% endif %}
+                            <div class="text-muted small mt-1">{{ pol.summary|truncatewords:15 }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-secondary">{{ pol.council_session_ref }}</div>
+                        </td>
+                        <td>
+                            <div class="text-dark small"><i class="fa-solid fa-calendar me-1"></i> {{ pol.submission_date }}</div>
+                        </td>
+                        <td>
+                            {% if pol.status == 'PENDING_RATIFICATION' %}
+                            <span class="badge bg-danger fs-6 py-2 px-3">
+                                <i class="fa-solid fa-clock me-1"></i> معروضة للمصادقة
+                            </span>
+                            {% elif pol.status == 'RATIFIED' %}
+                            <span class="badge bg-success fs-6 py-2 px-3">
+                                <i class="fa-solid fa-signature me-1"></i> مصادق عليها رسمياً
+                            </span>
+                            {% elif pol.status == 'RETURNED_WITH_REMARKS' %}
+                            <span class="badge bg-warning text-dark py-2 px-3">
+                                <i class="fa-solid fa-rotate-left me-1"></i> معادة بملاحظات
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary py-2 px-3">غير معتمدة</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pol.ministerial_decree_number %}
+                            <div class="fw-bold text-success font-monospace">{{ pol.ministerial_decree_number }}</div>
+                            {% if pol.effective_date %}<small class="text-muted">نفاذ: {{ pol.effective_date }}</small>{% endif %}
+                            {% else %}
+                            <span class="text-muted small">قيد المصادقة</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm {% if pol.status == 'PENDING_RATIFICATION' %}btn-success fw-bold{% else %}btn-outline-primary{% endif %}" data-bs-toggle="modal" data-bs-target="#ratifyPolicyModal{{ pol.pk }}">
+                                <i class="fa-solid fa-stamp me-1"></i> {% if pol.status == 'PENDING_RATIFICATION' %}مصادقة{% else %}عرض / تعديل{% endif %}
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Ratification Modal for this policy -->
+                    <div class="modal fade" id="ratifyPolicyModal{{ pol.pk }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <form method="POST" action="{% url 'decisions:minister_policy_ratify' pol.pk %}">
+                                    {% csrf_token %}
+                                    <div class="modal-header bg-dark text-white" style="background: linear-gradient(135deg, #0b412e 0%, #0f1e2f 100%) !important;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa-solid fa-stamp text-warning fs-4"></i>
+                                            <h5 class="modal-title fw-bold text-white mb-0">المصادقة والاعتماد الوزاري: {{ pol.title }}</h5>
+                                        </div>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-4">
+                                        <div class="alert alert-light border mb-3">
+                                            <div class="fw-bold text-dark mb-1">الوثيقة: {{ pol.title }} ({{ pol.get_policy_type_display }})</div>
+                                            <div class="small text-muted mb-2"><strong>مرجع الإحالة:</strong> {{ pol.council_session_ref }} • <strong>تاريخ الإحالة:</strong> {{ pol.submission_date }}</div>
+                                            <div class="small bg-white p-2 rounded border">{{ pol.summary }}</div>
+                                        </div>
+
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold">قرار معالي الوزير:</label>
+                                                <div class="d-flex gap-4 p-2 bg-light rounded border">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="action_decision" id="actionRatify{{ pol.pk }}" value="RATIFY" {% if pol.status != 'RETURNED_WITH_REMARKS' %}checked{% endif %}>
+                                                        <label class="form-check-label fw-bold text-success" for="actionRatify{{ pol.pk }}">
+                                                            <i class="fa-solid fa-check-circle me-1"></i> المصادقة والاعتماد النهائي وإصدار القرار الوزاري بالنفاذ
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="action_decision" id="actionReturn{{ pol.pk }}" value="RETURN_REVISION" {% if pol.status == 'RETURNED_WITH_REMARKS' %}checked{% endif %}>
+                                                        <label class="form-check-label fw-bold text-warning text-dark" for="actionReturn{{ pol.pk }}">
+                                                            <i class="fa-solid fa-rotate-left me-1"></i> إعادة الوثيقة للمجلس مع ملاحظات وتوجيهات للتعديل
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold text-success">رقم وتاريخ القرار الوزاري بالمصادقة والنفاذ:</label>
+                                                <input type="text" name="ministerial_decree_number" class="form-control font-monospace" value="{{ pol.ministerial_decree_number }}" placeholder="مثال: قرار وزاري رقم (28) لسنة 2026">
+                                                <div class="form-text small">مطلوب عند إصدار المصادقة الرسمية</div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">تاريخ المصادقة:</label>
+                                                <input type="date" name="ratification_date" class="form-control" value="{{ pol.ratification_date|date:'Y-m-d'|default:'' }}">
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">تاريخ بدء النفاذ والعمل:</label>
+                                                <input type="date" name="effective_date" class="form-control" value="{{ pol.effective_date|date:'Y-m-d'|default:'' }}">
+                                            </div>
+
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold">توجيهات وقرار معالي الوزير والملاحظات:</label>
+                                                <textarea name="minister_directive" class="form-control" rows="3" placeholder="توجيهات معالي الوزير لمجلس الاعتماد الأكاديمي والجامعات بخصوص تطبيق هذه الوثيقة...">{{ pol.minister_directive }}</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                        <button type="submit" class="btn btn-success btn-lg fw-bold px-4">
+                                            <i class="fa-solid fa-signature me-1"></i> اعتماد وحفظ القرار الوزاري
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-file-circle-xmark display-4 mb-2 text-secondary"></i>
+                            <div>لم يتم العثور على أي لوائح أو سياسات مطابقة للفئة المحددة.</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: New Policy Form -->
+<div class="modal fade" id="newPolicyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'decisions:minister_policy_create' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header bg-dark text-white" style="background: linear-gradient(135deg, #0b412e 0%, #0f1e2f 100%) !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-file-shield text-warning fs-4"></i>
+                        <h5 class="modal-title fw-bold text-white mb-0">استمارة إحالة لائحة / سياسة عامة للمصادقة الوزارية</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        يتم رفع السياسات واللوائح العامة وأدلة المعايير الصادرة عن مجلس إدارة مجلس الاعتماد الأكاديمي لعرضها على معالي الوزير للمصادقة الوزارية والنفاذ.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">عنوان السياسة / اللائحة العامة: <span class="text-danger">*</span></label>
+                            <input type="text" name="title" class="form-control" placeholder="مثال: اللائحة التنفيذية لمعايير الاعتماد الأكاديمي لبرامج الطب البشري" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">نوع الوثيقة: <span class="text-danger">*</span></label>
+                            <select name="policy_type" class="form-select" required>
+                                {% for code, label in type_choices %}
+                                <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold">مرجع إقرار مجلس الإدارة (رقم وتاريخ الجلسة): <span class="text-danger">*</span></label>
+                            <input type="text" name="council_session_ref" class="form-control" placeholder="مثال: محضر جلسة المجلس رقم (03) لسنة 2026 المنعقدة بتاريخ 2026/02/10" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">تاريخ الإحالة لمعالي الوزير:</label>
+                            <input type="date" name="submission_date" class="form-control">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">خلاصة السياسة والأهداف الاستراتيجية: <span class="text-danger">*</span></label>
+                            <textarea name="summary" class="form-control" rows="3" placeholder="موجز عن الأحكام والضوابط والأهداف المرجوة من هذه اللائحة..." required></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">مرفق ملف الوثيقة الرسمية (PDF):</label>
+                            <input type="file" name="document_file" class="form-control" accept=".pdf">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary btn-lg fw-bold px-4">
+                        <i class="fa-solid fa-paper-plane me-1"></i> إحالة الوثيقة للمصادقة الوزارية
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

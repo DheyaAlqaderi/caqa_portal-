@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block title %}لوحة مدير النظام التقنية الشاملة | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+{% include 'accounts/includes/sysadmin_nav.html' %}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <span class="badge bg-dark mb-1"><i class="fa-solid fa-server text-warning me-1"></i> الإدارة التقنية المركزية (System Administration)</span>
+        <h3 class="fw-bold text-dark mb-0">لوحة مدير النظام والحالة التشغيلية والتقنية للبوابة</h3>
+        <small class="text-muted">إحصائيات حية من قاعدة البيانات، مراقبة النشاط والأمان، وفحص صحة الخدمات دون التدخل في القرارات الأكاديمية</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'accounts:sysadmin_backups' %}" class="btn btn-warning fw-bold text-dark shadow-sm">
+            <i class="fa-solid fa-database me-1"></i> النسخ الاحتياطي السريع
+        </a>
+        <a href="{% url 'accounts:sysadmin_security_center' %}" class="btn btn-outline-danger fw-bold">
+            <i class="fa-solid fa-shield-halved me-1"></i> مركز الأمان والتدقيق
+        </a>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- A. MAIN STATISTICS (REAL DATABASE METRICS)                                -->
+<!-- ========================================================================= -->
+<div class="card card-custom p-4 mb-4 shadow-sm">
+    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+        <i class="fa-solid fa-chart-pie text-primary me-2"></i>
+        أولاً: الإحصائيات الرئيسية للنظام (بيانات فعلية حية من قاعدة البيانات)
+    </h5>
+    <div class="row g-3">
+        <!-- Users -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">إجمالي المستخدمين المسجلين</div>
+                <div class="fs-3 fw-bold text-dark">{{ stats.total_users }}</div>
+                <div class="small mt-1">
+                    <span class="badge bg-success">نشط: {{ stats.active_users }}</span>
+                    <span class="badge bg-secondary">غير نشط: {{ stats.inactive_users }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- Locked & Pending Users -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">حسابات مقفلة / بانتظار التفعيل</div>
+                <div class="fs-3 fw-bold {% if stats.locked_users > 0 %}text-danger{% else %}text-dark{% endif %}">{{ stats.locked_users }} مقفل</div>
+                <div class="small mt-1">
+                    <span class="badge bg-warning text-dark">بانتظار الاعتماد: {{ stats.pending_users }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- Institutions & Structure -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">المؤسسات والكليات والأقسام</div>
+                <div class="fs-3 fw-bold text-primary">{{ stats.total_institutions }} مؤسسة</div>
+                <div class="small text-muted mt-1">
+                    كليات: <strong>{{ stats.total_colleges }}</strong> • أقسام: <strong>{{ stats.total_departments }}</strong>
+                </div>
+            </div>
+        </div>
+        <!-- Academic Programs -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">إجمالي البرامج الأكاديمية</div>
+                <div class="fs-3 fw-bold text-success">{{ stats.total_programs }} برنامج</div>
+                <div class="small text-muted mt-1">مسجلة في السجل الأكاديمي الوطني</div>
+            </div>
+        </div>
+        <!-- Accreditation Applications -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">طلبات الاعتماد الأكاديمي</div>
+                <div class="fs-3 fw-bold text-dark">{{ stats.total_applications }} طلب</div>
+                <div class="small mt-1">
+                    <span class="badge bg-info text-dark">قيد الإجراء: {{ stats.in_progress_applications }}</span>
+                    <span class="badge bg-success">مكتمل: {{ stats.completed_applications }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- Council Meetings & Decisions -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">جلسات وقرارات المجلس والشهادات</div>
+                <div class="fs-3 fw-bold text-primary">{{ stats.scheduled_meetings }} جلسة مجدولة</div>
+                <div class="small text-muted mt-1">
+                    قرارات: <strong>{{ stats.issued_decisions }}</strong> • شهادات: <strong>{{ stats.issued_certificates }}</strong>
+                </div>
+            </div>
+        </div>
+        <!-- Notifications -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">الإشعارات وحالة التسليم</div>
+                <div class="fs-3 fw-bold text-dark">{{ stats.total_notifications }} إشعار</div>
+                <div class="small mt-1">
+                    <span class="badge bg-warning text-dark">معلقة: {{ stats.pending_notifications }}</span>
+                    <span class="badge bg-danger">فشل: {{ stats.failed_notifications }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- Uploaded Documents & Storage -->
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="p-3 border rounded bg-light h-100">
+                <div class="text-muted small fw-bold">الوثائق المرفوعة واستهلاك التخزين</div>
+                <div class="fs-3 fw-bold text-info">{{ stats.total_uploaded_documents }} وثيقة</div>
+                <div class="small text-muted mt-1">
+                    المساحة المستهلكة: <strong class="text-dark">{{ stats.storage_usage_formatted }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- C. SYSTEM HEALTH (LIVE VERIFIED TECHNICAL STATUS)                         -->
+<!-- ========================================================================= -->
+<div class="card card-custom p-4 mb-4 shadow-sm">
+    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+        <i class="fa-solid fa-heart-pulse text-success me-2"></i>
+        ثانياً: حالة وصحة النظام التقنية (System Health — فحص حي ومباشر)
+    </h5>
+    <div class="row g-3">
+        {% for key, item in health.items %}
+        <div class="col-md-6 col-lg-3">
+            <div class="p-3 border rounded h-100 d-flex flex-column justify-content-between {% if item.ok %}border-success bg-success bg-opacity-10{% else %}border-danger bg-danger bg-opacity-10{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-dark small">{{ item.label }}</span>
+                    {% if item.ok %}
+                    <span class="badge bg-success"><i class="fa-solid fa-circle-check me-1"></i> يعمل بكفاءة</span>
+                    {% else %}
+                    <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> يحتاج فحص</span>
+                    {% endif %}
+                </div>
+                <small class="text-muted font-monospace" style="font-size: 0.78rem;">{{ item.detail }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- B. SYSTEM ACTIVITY & AUDIT FILTERS                                        -->
+<!-- ========================================================================= -->
+<div class="card card-custom p-4 mb-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 border-bottom pb-2 mb-3">
+        <h5 class="fw-bold text-dark mb-0">
+            <i class="fa-solid fa-wave-square text-primary me-2"></i>
+            ثالثاً: نشاط النظام والعمليات الإدارية والأمنية الأخيرة
+        </h5>
+        <form method="GET" class="d-flex flex-wrap gap-2 align-items-center">
+            <input type="text" name="actor" value="{{ filters.actor }}" class="form-control form-control-sm" placeholder="تصفية بالمستخدم..." style="width: 150px;">
+            <input type="text" name="action_type" value="{{ filters.action_type }}" class="form-control form-control-sm" placeholder="نوع العملية..." style="width: 150px;">
+            <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-control form-control-sm" style="width: 150px;">
+            <button type="submit" class="btn btn-sm btn-primary fw-bold">تصفية النشاط</button>
+            {% if filters.actor or filters.action_type or filters.date_from %}
+            <a href="{% url 'accounts:sysadmin_dashboard' %}" class="btn btn-sm btn-outline-secondary">إلغاء</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="row g-4">
+        <!-- Recent Administrative Actions -->
+        <div class="col-lg-6">
+            <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-bolt text-primary me-1"></i> أحدث العمليات الإدارية وتعديلات الحسابات:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>المنفذ</th>
+                            <th>العملية</th>
+                            <th>التفاصيل</th>
+                            <th>التاريخ والوقت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in activity.recent_admin_actions %}
+                        <tr>
+                            <td class="fw-bold">{{ log.user.username|default:"النظام" }}</td>
+                            <td><code>{{ log.action }}</code></td>
+                            <td>{{ log.details|truncatechars:75 }}</td>
+                            <td class="text-muted font-monospace">{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد سجلات مطابقة.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Login Activity & Security Alerts -->
+        <div class="col-lg-6">
+            <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-right-to-bracket text-success me-1"></i> أحدث عمليات تسجيل الدخول والتنبيهات الأمنية:</h6>
+            <div class="table-responsive mb-3">
+                <table class="table table-sm table-bordered table-hover align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>المستخدم</th>
+                            <th>الحالة</th>
+                            <th>عنوان IP</th>
+                            <th>الوقت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in activity.recent_logins %}
+                        <tr>
+                            <td class="fw-bold">{{ l.user.username|default:l.target_id }}</td>
+                            <td>
+                                {% if l.action == 'LOGIN_SUCCESS' %}
+                                <span class="badge bg-success">دخول ناجح</span>
+                                {% elif l.action == 'LOGIN_FAILED' %}
+                                <span class="badge bg-danger">محاولة فاشلة</span>
+                                {% else %}
+                                <span class="badge bg-secondary">تسجيل خروج</span>
+                                {% endif %}
+                            </td>
+                            <td class="font-monospace">{{ l.ip_address|default:"127.0.0.1" }}</td>
+                            <td class="text-muted font-monospace">{{ l.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد عمليات دخول مسجلة.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h6 class="fw-bold text-danger mb-2"><i class="fa-solid fa-shield-virus me-1"></i> تنبيهات الحوكمة والأمان المحظورة ({{ activity.recent_security_alerts|length }}):</h6>
+            <ul class="list-group list-group-flush border rounded small">
+                {% for sec in activity.recent_security_alerts %}
+                <li class="list-group-item py-1 d-flex justify-content-between align-items-center">
+                    <span><strong class="text-danger">[حظر أمني]</strong> {{ sec.actor.username|default:"مجهول" }} — <code>{{ sec.permission_codename }}</code></span>
+                    <span class="text-muted font-monospace">{{ sec.timestamp|date:"Y-m-d H:i" }}</span>
+                </li>
+                {% empty %}
+                <li class="list-group-item py-2 text-success"><i class="fa-solid fa-check-circle me-1"></i> لا توجد خروقات أمنية.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-2">
+        <!-- Recently Registered Users -->
+        <div class="col-md-4">
+            <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-user-plus text-info me-1"></i> أحدث المستخدمين المسجلين:</h6>
+            <ul class="list-group small">
+                {% for u in activity.recent_registered_users %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ u.get_full_name|default:u.username }}</strong> (@{{ u.username }})
+                        <small class="d-block text-muted">{{ u.get_role_display }}</small>
+                    </div>
+                    <span class="badge bg-light text-dark border">{{ u.date_joined|date:"Y-m-d" }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Recent Role & Permission Changes -->
+        <div class="col-md-4">
+            <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-key text-warning me-1"></i> أحدث تغييرات الأدوار والصلاحيات:</h6>
+            <ul class="list-group small">
+                {% for p in activity.recent_permission_changes %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ p.get_action_type_display }}</strong>: <code>{{ p.permission_codename|default:p.target_role }}</code>
+                        <small class="d-block text-muted">بواسطة: {{ p.actor.username|default:"النظام" }}</small>
+                    </div>
+                    <span class="text-muted font-monospace">{{ p.timestamp|date:"m-d H:i" }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Recent Backups -->
+        <div class="col-md-4">
+            <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-database text-success me-1"></i> أحدث عمليات النسخ الاحتياطي:</h6>
+            <ul class="list-group small">
+                {% for b in activity.recent_backups %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ b.backup_name|truncatechars:28 }}</strong>
+                        <small class="d-block text-muted">{{ b.get_backup_type_display }} ({{ b.formatted_size }})</small>
+                    </div>
+                    <span class="badge bg-success">{{ b.get_status_display }}</span>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-muted">لم تُسجل نسخ يدوية حديثة بعد. <a href="{% url 'accounts:sysadmin_backups' %}">إنشاء نسخة الآن</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

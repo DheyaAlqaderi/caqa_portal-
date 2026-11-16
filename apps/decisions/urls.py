@@ -1,0 +1,50 @@
+from django.urls import path
+from . import views, pdf_services, minister_views
+
+app_name = 'decisions'
+
+urlpatterns = [
+    path('workspace/', views.council_governance_dashboard, name='council_workspace'),
+    path('meetings/', views.council_meetings_list, name='meetings_list'),
+    path('meetings/create/', views.council_meeting_create, name='meeting_create'),
+    path('meetings/<int:pk>/', views.meeting_detail, name='meeting_detail'),
+    path('meetings/<int:pk>/status/', views.meeting_status_transition, name='meeting_status_transition'),
+    path('meetings/<int:pk>/schedule/', views.meeting_update_schedule, name='meeting_update_schedule'),
+    path('meetings/<int:pk>/participants/add/', views.meeting_add_participant, name='meeting_add_participant'),
+    path('meetings/<int:pk>/attendance/record/', views.meeting_record_attendance, name='meeting_record_attendance'),
+    path('meetings/<int:pk>/attachments/upload/', views.meeting_upload_attachment, name='meeting_upload_attachment'),
+    path('meetings/<int:pk>/invite/', views.meeting_send_invitations, name='meeting_send_invitations'),
+    path('meetings/<int:pk>/rsvp/', views.meeting_rsvp, name='meeting_rsvp'),
+    path('meetings/<int:meeting_pk>/agenda/create/', views.agenda_item_create, name='agenda_item_create'),
+    path('agenda-items/<int:item_pk>/', views.agenda_item_detail, name='agenda_item_detail'),
+    path('agenda-items/<int:item_pk>/discuss/', views.agenda_item_add_discussion, name='agenda_item_add_discussion'),
+    path('agenda-items/<int:item_pk>/carry-over/', views.agenda_item_carry_over, name='agenda_item_carry_over'),
+    path('agenda-items/<int:item_pk>/ballot/open/', views.agenda_item_ballot_open, name='agenda_item_ballot_open'),
+    path('meetings/<int:meeting_pk>/ballots/open/<int:app_pk>/', views.ballot_open, name='ballot_open'),
+    path('ballots/<int:pk>/vote/', views.ballot_cast_vote, name='ballot_cast_vote'),
+    path('ballots/<int:pk>/close/', views.ballot_close_and_tally, name='ballot_close_and_tally'),
+    path('meetings/<int:meeting_pk>/minutes/manage/', views.meeting_minutes_manage, name='meeting_minutes_manage'),
+    path('meetings/<int:meeting_pk>/minutes/approve/', views.meeting_minutes_approve, name='meeting_minutes_approve'),
+    path('meetings/<int:meeting_pk>/minutes/print/', views.meeting_minutes_print, name='meeting_minutes_print'),
+    path('meetings/<int:meeting_pk>/resolutions/create/', views.resolution_create, name='resolution_create'),
+    path('resolutions/<int:pk>/status/', views.resolution_update_status, name='resolution_update_status'),
+    path('transactions/', views.sovereign_transactions_list, name='sovereign_transactions_list'),
+    path('transactions/<int:pk>/', views.sovereign_transaction_detail, name='sovereign_transaction_detail'),
+    path('list/', views.council_meetings_list, name='decision_list'),
+    path('issue/<int:app_pk>/', views.issue_decision_for_application, name='issue_decision'),
+    path('certificate/<int:pk>/', views.certificate_detail, name='certificate_detail'),
+    path('certificate/<int:pk>/pdf/', pdf_services.export_certificate_pdf_view, name='certificate_pdf_export'),
+    path('certificate/<int:pk>/manage-status/', views.certificate_status_manage, name='certificate_status_manage'),
+    path('verify/<uuid:uuid>/', views.verify_certificate_public, name='verify_certificate_public'),
+    path('verify/<uuid:uuid>/pdf/', pdf_services.export_certificate_pdf_by_uuid_view, name='verify_certificate_pdf_public'),
+
+    # H.E. Minister of Higher Education and Scientific Research Endpoints
+    path('minister/', minister_views.minister_dashboard, name='minister_dashboard'),
+    path('minister/nominations/', minister_views.minister_nominations_list, name='minister_nominations_list'),
+    path('minister/nominations/create/', minister_views.minister_nomination_create, name='minister_nomination_create'),
+    path('minister/nominations/<int:pk>/update/', minister_views.minister_nomination_update, name='minister_nomination_update'),
+    path('minister/nominations/<int:pk>/pm-decree/', minister_views.pm_nomination_decree, name='pm_nomination_decree'),
+    path('minister/policies/', minister_views.minister_policies_list, name='minister_policies_list'),
+    path('minister/policies/create/', minister_views.minister_policy_create, name='minister_policy_create'),
+    path('minister/policies/<int:pk>/ratify/', minister_views.minister_policy_ratify, name='minister_policy_ratify'),
+]

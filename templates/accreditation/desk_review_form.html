@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}الفحص المكتبي الأولي | {{ app.application_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-primary mb-1">المرحلة 2: الفحص الأولي واستيفاء الشروط</span>
+                    <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-clipboard-check text-primary me-2"></i> استمارة المراجعة المكتبية والتحقق من الأهلية</h4>
+                    <small class="text-muted">الطلب رقم: {{ app.application_number }} - {{ app.institution.name }}</small>
+                </div>
+                <div>
+                    <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة للملف
+                    </a>
+                </div>
+            </div>
+
+            <div class="alert alert-light border small text-muted mb-4">
+                <i class="fa-solid fa-info-circle text-primary me-1"></i>
+                يقوم الفريق الفني المتخصص للمجلس بدراسة تقرير الدراسة الذاتية والوثائق للتأكد من استيفاء شروط الأهلية والحد الأدنى من المعايير الشكلية والموضوعية قبل الانتقال للمرحلة الميدانية.
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">قرار الفحص المكتبي الأولي:</label>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-check p-3 border rounded h-100 bg-light">
+                                <input class="form-check-input ms-2" type="radio" name="decision" id="dec_acc" value="ACCEPTED" {% if review.decision == 'ACCEPTED' %}checked{% endif %}>
+                                <label class="form-check-label fw-bold text-success" for="dec_acc">
+                                    <i class="fa-solid fa-circle-check me-1"></i> مستوفي الشروط
+                                    <small class="d-block text-muted fw-normal mt-1">الموافقة على الانتقال للمرحلة 3 (تشكيل لجان التقييم الخارجي والزيارة).</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check p-3 border rounded h-100 bg-light">
+                                <input class="form-check-input ms-2" type="radio" name="decision" id="dec_def" value="NEEDS_COMPLETION" {% if review.decision == 'NEEDS_COMPLETION' %}checked{% endif %}>
+                                <label class="form-check-label fw-bold text-warning" for="dec_def">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> وجود نواقص
+                                    <small class="d-block text-muted fw-normal mt-1">طلب استكمال الوثائق والشواهد الناقصة قبل المتابعة.</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check p-3 border rounded h-100 bg-light">
+                                <input class="form-check-input ms-2" type="radio" name="decision" id="dec_rej" value="REJECTED" {% if review.decision == 'REJECTED' %}checked{% endif %}>
+                                <label class="form-check-label fw-bold text-danger" for="dec_rej">
+                                    <i class="fa-solid fa-circle-xmark me-1"></i> غير مستوفي (رفض)
+                                    <small class="d-block text-muted fw-normal mt-1">عدم استيفاء شروط الأهلية والحد الأدنى المعياري.</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">نسبة اكتمال الوثائق والأدلة (%):</label>
+                        <input type="number" name="completeness_percentage" class="form-control form-control-lg" min="0" max="100" value="{{ review.completeness_percentage|default:80 }}" required>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center">
+                        <div class="form-check form-switch mt-4">
+                            <input class="form-check-input" type="checkbox" name="formal_criteria_met" id="formal_criteria_met" {% if review.formal_criteria_met %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="formal_criteria_met">تم التحقق من استيفاء المعايير الشكلية والتنظيمية</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-light border p-3 mb-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i> قائمة التحقق المعيارية الإلزامية للفحص المكتبي (Checklist):</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered bg-white align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>بند التحقق الشكلي / اللائحي</th>
+                                    <th>المرجع الرسمي</th>
+                                    <th style="width: 170px;">حالة الاستيفاء</th>
+                                    <th>ملاحظات الفاحص</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in checklist_items %}
+                                <tr>
+                                    <td>
+                                        <span class="fw-bold">{{ item.item_title }}</span>
+                                        {% if item.is_mandatory %}<span class="badge bg-danger ms-1">إلزامي</span>{% endif %}
+                                    </td>
+                                    <td><small class="text-muted">{{ item.regulatory_reference|default:'اللائحة التنفيذية' }}</small></td>
+                                    <td>
+                                        <select name="item_status_{{ item.id }}" class="form-select form-select-sm">
+                                            <option value="MET" {% if item.status == 'MET' %}selected{% endif %}>مستوفى ومكتمل</option>
+                                            <option value="DEFICIENT" {% if item.status == 'DEFICIENT' %}selected{% endif %}>ناقص / به ملاحظة</option>
+                                            <option value="NOT_APPLICABLE" {% if item.status == 'NOT_APPLICABLE' %}selected{% endif %}>لا ينطبق</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="item_notes_{{ item.id }}" value="{{ item.notes }}" class="form-control form-control-sm" placeholder="ملاحظات التحقق...">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">الملاحظات الفنية والموضوعية لفريق المراجعة المكتبية:</label>
+                    <textarea name="technical_remarks" class="form-control" rows="4" placeholder="سجل الملاحظات الفنية حول بنية التقرير وجودة الشواهد...">{{ review.technical_remarks }}</textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-danger"><i class="fa-solid fa-list-check me-1"></i> قائمة النواقص والاستيفاءات المطلوبة من المؤسسة (إن وجدت):</label>
+                    <textarea name="deficiencies_requested" class="form-control" rows="4" placeholder="حدد بوضوح الشواهد والوثائق الإضافية المطلوبة من الجامعة قبل الانتقال للمرحلة الميدانية...">{{ review.deficiencies_requested }}</textarea>
+                </div>
+
+                <div class="d-flex justify-content-between pt-3 border-top">
+                    <a href="{% url 'accreditation:application_detail' app.pk %}" class="btn btn-outline-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">
+                        <i class="fa-solid fa-save me-1"></i> حفظ واعتماد نتيجة الفحص المكتبي
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

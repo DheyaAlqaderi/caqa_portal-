@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}سجل تدقيق الصلاحيات والعمليات | مجلس الاعتماد الأكاديمي{% endblock %}
+
+{% block content %}
+<div class="row my-4">
+    <div class="col-12">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <span class="badge bg-secondary mb-1">الرقابة والنزاهة المؤسسية</span>
+                    <h3 class="fw-bold text-dark mb-0"><i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i> سجل تدقيق ومراجعة الصلاحيات</h3>
+                    <small class="text-muted">سجل تاريخي غير قابل للتعديل أو الحذف، يوثق كافة تغييرات الصلاحيات والاستثناءات والبوابات السيادية</small>
+                </div>
+                <div>
+                    <a href="{% url 'accounts:permission_matrix' %}" class="btn btn-outline-primary">
+                        <i class="fa-solid fa-arrow-right me-1"></i> العودة لمصفوفة الصلاحيات
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="card bg-light p-3 mb-4 border">
+                <form method="get" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">اسم المنفذ (Actor)</label>
+                        <input type="text" name="actor" class="form-control form-control-sm" value="{{ filters.actor }}" placeholder="اسم المستخدم المنفذ...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">المستخدم المستهدف (Target)</label>
+                        <input type="text" name="target_user" class="form-control form-control-sm" value="{{ filters.target_user }}" placeholder="المستخدم المتأثر...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">نوع العملية (Action)</label>
+                        <select name="action_type" class="form-select form-select-sm">
+                            <option value="">-- جميع العمليات --</option>
+                            {% for code, label in action_types %}
+                            <option value="{{ code }}" {% if filters.action_type == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">رمز الصلاحية</label>
+                        <input type="text" name="permission" class="form-control form-control-sm" value="{{ filters.permission }}" placeholder="can_...">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="fa-solid fa-filter"></i> تصفية
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Audit Log Table -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle border text-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%;">التوقيت</th>
+                            <th style="width: 12%;">المنفذ</th>
+                            <th style="width: 18%;">نوع العملية</th>
+                            <th style="width: 15%;">الهدف / الصلاحية</th>
+                            <th style="width: 12%;">الحالة السابقة / الجديدة</th>
+                            <th style="width: 20%;">السبب والمبرر</th>
+                            <th style="width: 8%;">عنوان IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in page_obj %}
+                        <tr>
+                            <td>
+                                <span class="fw-bold">{{ record.timestamp|date:"Y-m-d" }}</span>
+                                <br><small class="text-muted">{{ record.timestamp|date:"H:i:s" }}</small>
+                            </td>
+                            <td>
+                                {% if record.actor %}
+                                <span class="text-dark fw-bold">{{ record.actor.username }}</span>
+                                <br><small class="text-muted">{{ record.actor.get_role_display }}</small>
+                                {% else %}
+                                <span class="badge bg-secondary">النظام آلياً</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.action_type == 'SECURITY_GATE_BLOCKED' %}
+                                <span class="badge bg-danger p-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> حظر بوابة سيادية</span>
+                                {% elif record.action_type == 'ROLE_ASSIGNMENT_CHANGED' %}
+                                <span class="badge bg-primary p-2"><i class="fa-solid fa-sliders me-1"></i> تعديل تعيين دور</span>
+                                {% elif record.action_type == 'USER_OVERRIDE_CREATED' %}
+                                <span class="badge bg-success p-2"><i class="fa-solid fa-user-plus me-1"></i> إنشاء استثناء مستخدم</span>
+                                {% elif record.action_type == 'USER_OVERRIDE_REVOKED' %}
+                                <span class="badge bg-warning text-dark p-2"><i class="fa-solid fa-user-minus me-1"></i> أرشفة استثناء</span>
+                                {% elif record.action_type == 'DIAGNOSTIC_ACCESSED' %}
+                                <span class="badge bg-info text-dark p-2"><i class="fa-solid fa-stethoscope me-1"></i> دخول تشخيص فني</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ record.get_action_type_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.target_user %}
+                                <div>مستخدم: <strong>{{ record.target_user.username }}</strong></div>
+                                {% endif %}
+                                {% if record.target_role %}
+                                <div>دور: <span class="badge bg-light text-dark border">{{ record.target_role }}</span></div>
+                                {% endif %}
+                                {% if record.permission_codename %}
+                                <code>{{ record.permission_codename }}</code>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>سابقاً: <span class="text-muted">{{ record.previous_value|default:"-" }}</span></small>
+                                <br><small>جديداً: <span class="text-primary fw-bold">{{ record.new_value|default:"-" }}</span></small>
+                            </td>
+                            <td>
+                                <small class="text-dark">{{ record.reason|default:"-" }}</small>
+                            </td>
+                            <td>
+                                <small class="text-muted font-monospace">{{ record.ip_address|default:"-" }}</small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">لا توجد سجلات تدقيق مطابقة للشروط.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&actor={{ filters.actor }}&target_user={{ filters.target_user }}&action_type={{ filters.action_type }}&permission={{ filters.permission }}">السابق</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&actor={{ filters.actor }}&target_user={{ filters.target_user }}&action_type={{ filters.action_type }}&permission={{ filters.permission }}">التالي</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

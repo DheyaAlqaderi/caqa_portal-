@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}الملف العام: {{ institution.name }} | السجل الوطني للاعتماد{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 my-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'public_registry' %}"><i class="fa-solid fa-certificate me-1"></i> السجل الوطني للاعتماد</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'public_registry' %}?tab=institutions">مؤسسات التعليم العالي</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ institution.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Institution Header Card -->
+    <div class="card card-custom p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-light text-dark border font-monospace fs-6">{{ institution.code }}</span>
+                    <span class="badge {% if institution.institution_type == 'PUBLIC_UNIVERSITY' %}bg-success{% else %}bg-primary{% endif %} fs-6">
+                        {{ institution.get_institution_type_display }}
+                    </span>
+                    <span class="badge bg-light text-dark"><i class="fa-solid fa-location-dot text-danger me-1"></i> {{ institution.governorate }}</span>
+                </div>
+                <h2 class="fw-bold text-dark mb-1">{{ institution.name }}</h2>
+                {% if institution.name_en %}
+                <div class="text-muted fs-6 mb-2">{{ institution.name_en }}</div>
+                {% endif %}
+
+                <!-- Institutional Certificate Status -->
+                <div class="mt-3">
+                    {% if inst_cert and inst_cert.status == 'ACTIVE' and not inst_cert.is_revoked %}
+                    <span class="badge bg-success p-2 fs-6">
+                        <i class="fa-solid fa-circle-check me-1"></i> حاصلة على الاعتماد المؤسسي الكامل (ساري المفعول)
+                    </span>
+                    <div class="small text-muted mt-1">
+                        رقم القيد الوطني: <strong class="font-monospace text-primary">{{ inst_cert.national_registry_code }}</strong> 
+                        • ساري حتى: <strong>{{ inst_cert.decision.expiry_date }}</strong>
+                        <a href="{% url 'decisions:verify_certificate_public' inst_cert.certificate_uuid %}" target="_blank" class="ms-2 text-decoration-none">
+                            <i class="fa-solid fa-qrcode me-1"></i> فحص الشهادة الرقمية
+                        </a>
+                    </div>
+                    {% elif inst_cert and inst_cert.status == 'SUSPENDED' %}
+                    <span class="badge bg-warning text-dark p-2 fs-6">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> الاعتماد المؤسسي معلق مؤقتاً
+                    </span>
+                    {% else %}
+                    <span class="badge bg-light text-secondary border p-2">
+                        <i class="fa-solid fa-info-circle me-1"></i> مؤسسة مرخصة قانوناً • بانتظار استكمال الاعتماد المؤسسي
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stats Badge Box -->
+            <div class="d-flex gap-2">
+                <div class="text-center bg-white p-3 rounded border shadow-sm" style="min-width: 120px;">
+                    <div class="fs-3 fw-bold text-primary">{{ colleges_data|length }}</div>
+                    <div class="small text-muted">كليات / مراكز</div>
+                </div>
+                <div class="text-center bg-white p-3 rounded border shadow-sm" style="min-width: 120px;">
+                    <div class="fs-3 fw-bold text-dark">{{ total_programs }}</div>
+                    <div class="small text-muted">برنامج أكاديمي</div>
+                </div>
+                <div class="text-center bg-white p-3 rounded border shadow-sm" style="min-width: 120px;">
+                    <div class="fs-3 fw-bold text-success">{{ accredited_programs }}</div>
+                    <div class="small text-muted">برنامج معتمد</div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- Legal and Contact Info -->
+        <div class="row g-3 small text-muted">
+            <div class="col-md-4">
+                <i class="fa-solid fa-scale-balanced me-1 text-primary"></i> <strong>قرار الإنشاء/الترخيص:</strong> {{ institution.decree_number|default:'مرخصة وزارياً' }}
+            </div>
+            <div class="col-md-4">
+                <i class="fa-solid fa-user-tie me-1 text-primary"></i> <strong>رئيس المؤسسة:</strong> {{ institution.president_name|default:'غير محدد' }}
+            </div>
+            <div class="col-md-4">
+                <i class="fa-solid fa-award me-1 text-warning"></i> <strong>عميد التطوير وضمان الجودة:</strong> {{ institution.quality_center_dean|default:'غير محدد' }}
+            </div>
+            {% if institution.website %}
+            <div class="col-md-4">
+                <i class="fa-solid fa-globe me-1 text-info"></i> <strong>الموقع الرسمي:</strong> <a href="{{ institution.website }}" target="_blank">{{ institution.website }}</a>
+            </div>
+            {% endif %}
+            {% if institution.official_email %}
+            <div class="col-md-4">
+                <i class="fa-solid fa-envelope me-1 text-secondary"></i> <strong>البريد الإلكتروني:</strong> {{ institution.official_email }}
+            </div>
+            {% endif %}
+            {% if institution.official_phone %}
+            <div class="col-md-4">
+                <i class="fa-solid fa-phone me-1 text-success"></i> <strong>الهاتف:</strong> {{ institution.official_phone }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Colleges and Academic Programs Section -->
+    <h4 class="fw-bold text-dark mb-3">
+        <i class="fa-solid fa-graduation-cap text-primary me-2"></i> دليل الكليات والبرامج الأكاديمية التابعة
+    </h4>
+
+    {% for col_item in colleges_data %}
+    <div class="card card-custom p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div>
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-building-columns text-secondary me-2"></i> {{ col_item.college.name }}</h5>
+                {% if col_item.college.dean_name %}
+                <small class="text-muted">عميد الكلية: {{ col_item.college.dean_name }}</small>
+                {% endif %}
+            </div>
+            <span class="badge bg-light text-dark border">{{ col_item.programs|length }} برامج دراسية</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light small">
+                    <tr>
+                        <th>اسم البرنامج الأكاديمي</th>
+                        <th>الدرجة الممنوحة</th>
+                        <th>قرار فتح البرنامج (الوزارة)</th>
+                        <th>حالة الاعتماد الأكاديمي (CAQA)</th>
+                        <th class="text-center">التحقق</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p_item in col_item.programs %}
+                    {% with prog=p_item.prog cert=p_item.certificate %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'public_program_detail' prog.pk %}" class="fw-bold text-decoration-none text-dark hover-primary">
+                                {{ prog.name }}
+                            </a>
+                            <span class="text-muted small font-monospace d-block">{{ prog.code }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-primary border">{{ prog.get_degree_level_display }}</span>
+                        </td>
+                        <td class="small text-muted">
+                            {{ prog.ministry_approval_decree|default:'مرخص من الوزارة' }}
+                        </td>
+                        <td>
+                            {% if cert and cert.status == 'ACTIVE' and not cert.is_revoked %}
+                            <span class="badge bg-success"><i class="fa-solid fa-certificate me-1"></i> معتمد برامجياً</span>
+                            <div class="small text-muted mt-1 font-monospace">
+                                القيد: <strong>{{ cert.national_registry_code }}</strong> (حتى {{ cert.decision.expiry_date }})
+                            </div>
+                            {% elif cert and cert.status == 'SUSPENDED' %}
+                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i> معلق</span>
+                            {% else %}
+                            <span class="badge bg-light text-secondary border">قيد استكمال الاعتماد</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a href="{% url 'public_program_detail' prog.pk %}" class="btn btn-sm btn-outline-primary" title="عرض التفاصيل">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                {% if cert %}
+                                <a href="{% url 'decisions:verify_certificate_public' cert.certificate_uuid %}" target="_blank" class="btn btn-sm btn-outline-success" title="فحص الشهادة">
+                                    <i class="fa-solid fa-qrcode"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-3">لا توجد برامج مضافة في هذه الكلية حالياً.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-light text-center py-5">
+        <i class="fa-solid fa-folder-open text-muted display-4 mb-2"></i>
+        <h5>لم يتم تسجيل أي كليات أو برامج لهذه المؤسسة بعد.</h5>
+    </div>
+    {% endfor %}
+
+    <div class="text-center mt-4">
+        <a href="{% url 'public_registry' %}" class="btn btn-outline-secondary fw-bold">
+            <i class="fa-solid fa-arrow-right me-1"></i> العودة إلى السجل الوطني للاعتماد
+        </a>
+    </div>
+
+</div>
+{% endblock %}
