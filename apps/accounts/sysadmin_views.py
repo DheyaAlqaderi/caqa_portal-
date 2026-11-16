@@ -331,9 +331,9 @@ def sysadmin_dashboard_view(request):
         'completed_applications': AccreditationApplication.objects.filter(status__in=completed_statuses).count(),
         'scheduled_meetings': CouncilMeeting.objects.filter(
             status__in=[
-                CouncilMeeting.MeetingStatus.SCHEDULED,
+                CouncilMeeting.MeetingStatus.DRAFT,
+                CouncilMeeting.MeetingStatus.UNDER_PREPARATION,
                 CouncilMeeting.MeetingStatus.INVITATIONS_SENT,
-                CouncilMeeting.MeetingStatus.QUORUM_VERIFIED,
                 CouncilMeeting.MeetingStatus.IN_SESSION,
             ]
         ).count(),
